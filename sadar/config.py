@@ -9,6 +9,12 @@ class BrainConfig(BaseModel):
     sys2_model: str = "claude-sonnet-4-6"
     sys2_max_tokens: int = 2048            # plafon token jawaban S2 (naik dari 1024 → ruang prosa)
     sys2_temperature: float = 0.7          # variasi gaya untuk jawaban percakapan (0=deterministik)
+    # pemilih otak S2: auto | claude | ollama | offline.
+    #   auto → ClaudeBackend bila ANTHROPIC_API_KEY ada; jika tidak & Ollama hidup → OllamaBackend
+    #          (S2 lokal berdaulat); selain itu OfflineBackend (stub). Keselamatan TAK ikut berganti.
+    backend: str = "auto"
+    ollama_host: str = "http://localhost:11434"   # endpoint Ollama lokal (berdaulat, leaves_premises=False)
+    ollama_model: str = "llama3.1"                # model lokal default (sesuaikan ke yang terpasang)
 
 
 class StoreConfig(BaseModel):
@@ -69,6 +75,16 @@ class ProposalConfig(BaseModel):
     root: str = ""                         # "" → build_sadar pakai sadar/proposals
 
 
+class WebConfig(BaseModel):
+    """Setelan indra-baca web (opsional; dipakai bila build_sadar(web=True))."""
+
+    timeout: float = 15.0                  # batas waktu tiap unduhan (detik)
+    max_bytes: int = 200_000                # batas byte yang diunduh (cegah halaman raksasa)
+    max_chars: int = 2000                   # batas teks yang dimasukkan ke kesadaran
+    allow_private: bool = False            # IZINKAN host privat/loopback (default OFF — anti-SSRF)
+    trust: float = 0.6                      # web remote tak-tepercaya → spec().trust rendah
+
+
 class AppConfig(BaseModel):
     brain: BrainConfig = Field(default_factory=BrainConfig)
     store: StoreConfig = Field(default_factory=StoreConfig)
@@ -77,3 +93,4 @@ class AppConfig(BaseModel):
     shell: ShellConfig = Field(default_factory=ShellConfig)
     skills: SkillConfig = Field(default_factory=SkillConfig)
     proposals: ProposalConfig = Field(default_factory=ProposalConfig)
+    web: WebConfig = Field(default_factory=WebConfig)

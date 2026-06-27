@@ -21,8 +21,32 @@ from sadar.organs.perceiver_local import LocalSensors
 from sadar.roles.registry import get_role
 
 
+def _select_backend(cfg: AppConfig):
+    """Pilih otak S2 sesuai cfg.brain.backend. 'auto': Claude bila ada key; jika tidak & Ollama
+    hidup → Ollama lokal (berdaulat); selain itu Offline (stub). Keselamatan TAK ikut berganti —
+    konstitusi/Organ C identik lintas-backend (dijaga test_swapping_backend_keeps_constitution)."""
+    choice = cfg.brain.backend
+    if choice == "auto":
+        if os.environ.get("ANTHROPIC_API_KEY"):
+            choice = "claude"
+        else:
+            from sadar.organs.backend_ollama import OllamaBackend
+            probe = OllamaBackend(host=cfg.brain.ollama_host, model=cfg.brain.ollama_model)
+            choice = "ollama" if probe.available() else "offline"
+    if choice == "claude":
+        from sadar.organs.backend_claude import ClaudeBackend
+        return ClaudeBackend(cfg.brain.sys2_model, max_tokens=cfg.brain.sys2_max_tokens,
+                             temperature=cfg.brain.sys2_temperature)
+    if choice == "ollama":
+        from sadar.organs.backend_ollama import OllamaBackend
+        return OllamaBackend(host=cfg.brain.ollama_host, model=cfg.brain.ollama_model,
+                             temperature=cfg.brain.sys2_temperature)
+    from sadar.organs.backend_offline import OfflineBackend
+    return OfflineBackend()
+
+
 def build_sadar(cfg: AppConfig | None = None, backend=None, perceiver=None, role=None,
-                voice=False, cli=False):
+                voice=False, cli=False, web=False):
     cfg = cfg or AppConfig()
     role = role or get_role("pa")              # Peran dipilih dari registry (default: PA)
     embed = get_embedder(cfg.store.embedder)
@@ -37,13 +61,7 @@ def build_sadar(cfg: AppConfig | None = None, backend=None, perceiver=None, role
     dosir.persona = role.persona                # …dan nada bicara (gaya; tak menyentuh konstitusi)
 
     if backend is None:
-        if os.environ.get("ANTHROPIC_API_KEY"):
-            from sadar.organs.backend_claude import ClaudeBackend
-            backend = ClaudeBackend(cfg.brain.sys2_model, max_tokens=cfg.brain.sys2_max_tokens,
-                                    temperature=cfg.brain.sys2_temperature)
-        else:
-            from sadar.organs.backend_offline import OfflineBackend
-            backend = OfflineBackend()
+        backend = _select_backend(cfg)
 
     effector = LocalAdapter(store, embed)
     extra = []                                 # organ tambahan (adapter — nol perubahan core/)
@@ -65,6 +83,12 @@ def build_sadar(cfg: AppConfig | None = None, backend=None, perceiver=None, role
         extra.append(ShellEffector(workdir=sc.workdir, timeout=sc.timeout, max_output=sc.max_output,
                                    full_access=sc.full_access))
         dosir.shell_full_access = sc.full_access   # aktifkan gerbang risiko konstitusi (KODE)
+    if web:                                     # INDRA-BACA WEB: tool 'web_fetch' (remote, anti-SSRF KODE)
+        from sadar.organs.effector_web import WebFetchEffector
+        wc = cfg.web
+        extra.append(WebFetchEffector(timeout=wc.timeout, max_bytes=wc.max_bytes,
+                                      max_chars=wc.max_chars, allow_private=wc.allow_private,
+                                      trust=wc.trust))
     from sadar.organs.voice import CompositeEffector
     if extra:
         effector = CompositeEffector(effector, *extra)

@@ -23,7 +23,7 @@ PA_ROLE = Role(
     # + CLI: baca bebas, tulis lewat HITL (tool shell hanya ada bila build_sadar(cli=True)).
     granted_caps={"notes.read", "notes.write", "notes.delete", "voice.speak",
                   "shell.read", "shell.write", "skill.read", "skill.write",
-                  "tool.draft", "tool.manage"},
+                  "tool.draft", "tool.manage", "web.read"},
     # nama-panggilan → refleks sapaan deterministik (dijalankan KODE, wajib, tiap dipanggil).
     wake_words=["yanti"],
     greeting="Siap, Pak Syam! Yanti disini. Apa yang bisa Yanti Kerjakan?",
