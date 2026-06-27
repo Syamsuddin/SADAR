@@ -28,7 +28,9 @@ _ID_RE = re.compile(r"[A-Za-z0-9_-]+\Z")
 # ============ embedder lokal ============
 class HashingEmbedder:
     """Bag-of-hashed-tokens → vektor ter-normalisasi. Deterministik, tanpa dependensi.
-    Menangkap tumpang-tindih leksikal (cukup untuk recall slice 1)."""
+    Menangkap tumpang-tindih LEKSIKAL (cukup untuk recall slice 1; bukan makna semantik penuh)."""
+
+    name = "hashing"
 
     def __init__(self, dim: int = 256):
         self.dim = dim
@@ -43,21 +45,31 @@ class HashingEmbedder:
 
 
 class SentenceTransformerEmbedder:
-    """Embedder produksi (lazy import). Tetap LOKAL — tak membocorkan premis."""
+    """Embedder SEMANTIK produksi (lazy import). Tetap LOKAL (di perangkat) — tak membocorkan premis."""
 
     def __init__(self, model: str = "all-MiniLM-L6-v2"):
         from sentence_transformers import SentenceTransformer  # lazy
         self._m = SentenceTransformer(model)
+        self.name = f"sentence-transformers:{model}"
 
     def __call__(self, text: str) -> list[float]:
         return self._m.encode(text, normalize_embeddings=True).tolist()
 
 
-def get_embedder(name: str = "hashing"):
+def get_embedder(name: str = "auto"):
+    """Pilih embedder. 'auto' = SEMANTIK (sentence-transformers, lokal) bila terpasang & dapat dimuat,
+    jatuh ke HASHING (berdaulat, tanpa unduhan) bila tidak — sepola selektor backend. Eksplisit
+    'hashing'/'sentence-transformers' memaksa pilihan. Markdown=kebenaran → ganti embedder + reindex()
+    aman (vektor=indeks turunan; mathx.cosine tahan beda-dimensi)."""
     if name in ("hashing", "local-hash"):
         return HashingEmbedder()
     if name in ("sentence-transformers", "st"):
         return SentenceTransformerEmbedder()
+    if name == "auto":
+        try:
+            return SentenceTransformerEmbedder()       # semantik bila tersedia (mungkin unduh sekali)
+        except Exception:  # noqa: BLE001 — ImportError / gagal muat/unduh → fallback berdaulat
+            return HashingEmbedder()
     raise ValueError(f"embedder tak dikenal: {name}")
 
 

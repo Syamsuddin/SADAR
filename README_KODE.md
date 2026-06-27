@@ -29,7 +29,8 @@ python -m pytest -m integration   # menjalankan uji cermin end-to-end dgn otak a
 ```
 
 `build_sadar()` otomatis memilih `ClaudeBackend` bila `ANTHROPIC_API_KEY` ada, selain itu `OfflineBackend`.
-Embedder produksi (`sentence-transformers`) diaktifkan via `StoreConfig(embedder="sentence-transformers")`.
+Embedder default `auto`: SEMANTIK (`sentence-transformers`, lokal) bila terpasang, else HASHING
+(berdaulat, tanpa unduhan). Paksa via `StoreConfig(embedder="hashing"|"sentence-transformers")`.
 
 ---
 

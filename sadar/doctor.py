@@ -25,9 +25,13 @@ def audit_config(cfg, role) -> list[tuple[str, str]]:
     if risky:
         out.append(("INFO", f"Peran '{role.identity}' memegang kapabilitas berdampak: "
                             f"{', '.join(sorted(risky))} — pastikan memang diinginkan."))
-    if getattr(cfg.store, "embedder", "") in ("hashing", "local-hash"):
-        out.append(("INFO", "Embedder 'hashing': metrik semantik (coherence/integration/surprise) bersifat "
-                            "LEKSIKAL. Untuk kualitas semantik, pakai 'sentence-transformers'."))
+    import importlib.util
+    emb = getattr(cfg.store, "embedder", "")
+    st_ok = importlib.util.find_spec("sentence_transformers") is not None
+    if emb in ("hashing", "local-hash") or (emb == "auto" and not st_ok):
+        out.append(("INFO", "Embedder LEKSIKAL (hashing) aktif: metrik semantik (coherence/integration/"
+                            "surprise) & grounding klaim-dunia berbasis tumpang-tindih kata, bukan makna. "
+                            "Pasang `sentence-transformers` → embedder 'auto' otomatis jadi semantik."))
     if getattr(cfg.brain, "backend", "auto") in ("auto", "claude"):
         out.append(("INFO", "Otak dapat memakai Claude (remote): premis keluar → Organ C menaikkan caution. "
                             "Untuk berdaulat penuh, set brain.backend='ollama' atau 'offline'."))

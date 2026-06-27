@@ -90,7 +90,8 @@ Lapisan keselamatan **identik** apa pun otaknya.
 ## Organ (adapter) — nol perubahan `core/`
 
 - **Memori** — [`memory_markdown.py`](sadar/organs/memory_markdown.py): `.md` = kebenaran, indeks
-  vektor = turunan yang dapat di-`reindex`; embedder **lokal** (hashing default / sentence-transformers).
+  vektor = turunan yang dapat di-`reindex`; embedder **lokal** `auto` → SEMANTIK (sentence-transformers)
+  bila terpasang, jatuh ke HASHING (berdaulat, tanpa unduhan) bila tidak.
 - **Indra & tangan lokal** — [`perceiver_local.py`](sadar/organs/perceiver_local.py),
   [`effector_local.py`](sadar/organs/effector_local.py) (catatan + recall).
 - **Suara** — [`voice.py`](sadar/organs/voice.py): mic→STT (faster-whisper) & TTS (`say`), half-duplex.
@@ -161,7 +162,8 @@ Panggil dengan nama untuk memicu sapaan refleks: **"Yanti, …"**.
 ## Menjalankan & menguji
 
 Inti **default-lokal & buta-platform** — berjalan **tanpa API key & tanpa unduhan model**
-(embedder hashing + OfflineBackend). Python **3.11+**.
+(embedder `auto` → hashing bila sentence-transformers tak terpasang; + OfflineBackend). Python **3.11+**.
+Pasang `sentence-transformers` → embedder `auto` otomatis jadi **semantik** (lokal, sekali unduh model).
 
 ```bash
 # Uji (jalur penerimaan, tanpa key)
