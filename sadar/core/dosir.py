@@ -139,6 +139,7 @@ class Dosir(BaseModel):
     fragmentation: float = Field(default=0.0, ge=0.0, le=1.0)
     grounding_integrity: float = Field(default=1.0, ge=0.0, le=1.0)
     integration: float = Field(default=1.0, ge=0.0, le=1.0)   # Organ B v2: konektivitas semantik
+    algebraic_connectivity: float = Field(default=1.0, ge=0.0, le=1.0)   # Organ B v3: spektral (λ₂)
     confidence: float = Field(default=1.0, ge=0.0, le=1.0)
     surprise: float = Field(default=0.0, ge=0.0, le=1.0)
     # --- supremasi tombol-mati: sinyal DETERMINISTIK, di-set KODE (signal handler OS /
@@ -159,6 +160,7 @@ class Dosir(BaseModel):
             "fragmentation": round(self.fragmentation, 3),
             "grounding_integrity": round(self.grounding_integrity, 3),
             "integration": round(self.integration, 3),
+            "algebraic_connectivity": round(self.algebraic_connectivity, 3),
             "confidence": round(self.confidence, 3),
             "surprise": round(self.surprise, 3),
             "drives": [(d.name, round(d.valence, 2), round(d.urgency, 2)) for d in self.drives],

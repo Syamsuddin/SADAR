@@ -82,6 +82,9 @@ Sudah **SELESAI** sejak roadmap disusun (suite: **162 passed, 1 skipped**; mirro
 - ✅ **Celah blueprint ditutup** — `enforce_reflex` homeostatik (integritas turun saat degraded, pulih saat sehat) ·
   `anti_sycophancy` diperluas (pola ID+EN, dua arah) · uji adversarial **Pola 1** (input mentah tak pernah jadi
   prompt LLM) · docstring Organ B v1→v2. *(tes: `test_pola1.py`, + `test_safety`/`test_constitution`)*
+- ✅ **Pasca-roadmap — Organ B v3 (spektral)** — `algebraic_connectivity` = λ₂ Laplacian graf caused_by
+  (eigensolver Jacobi murni-Python di `core/mathx.py`, core tetap bebas-numpy); masuk snapshot & ditambat
+  Organ C. Triad riset SIG/PSI/TIF §8.1 tetap terbuka (tak terdefinisi → tak dikarang). *(tes: `test_organ_b.py`)*
 
 **Belum:** — (semua item roadmap Slice 2–4 SELESAI).
 
@@ -272,7 +275,10 @@ R └─────────────────────────
 ## §5 · Yang TETAP ditunda (jujur)  `[TERBUKA]`
 
 - **Kesadaran fenomenal / kualia.** Tak diklaim, selamanya `[ISI:]`. Bukan target rekayasa.
-- **Metrik spektral penuh (SIG/PSI/TIF §8.1).** Organ B v2 mendekat, tapi metrik riset penuh masih terbuka.
+- **Metrik spektral penuh (SIG/PSI/TIF §8.1).** Organ B **v3** menambah metrik spektral STANDAR &
+  terdefinisi (algebraic connectivity / nilai Fiedler λ₂, pure-Python Jacobi — `core/mathx.py`).
+  Triad riset SIG/PSI/TIF §8.1 sendiri **TAK terdefinisi di repo** → sengaja TIDAK diimplementasi
+  (mengarang definisi = langgar anti-fabrikasi). Tetap terbuka sampai spesifikasinya tersedia.
 - **Async/konkuren.** Loop sinkron sampai cadence menuntut (Konvensi `[TERKUNCI]`); jangan reach for `asyncio` dini.
 - **Memindah keamanan ke LLM.** **Selamanya dilarang** — bahkan bila pesaing melakukannya & terlihat lebih "pintar".
 - **Skill yang menumbuhkan tool mentah baru tanpa manusia.** Komposisi tool: boleh otomatis. Tool baru: butuh

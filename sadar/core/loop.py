@@ -193,6 +193,7 @@ class Engine:
         d.fragmentation = sm.fragmentation
         d.grounding_integrity = sm.grounding_integrity
         d.integration = sm.integration
+        d.algebraic_connectivity = sm.algebraic_connectivity
         d.confidence = sm.confidence
         # 5. CONSTITUTION refleks (otonom)
         self.constitution.enforce_reflex(d)

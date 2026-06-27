@@ -69,8 +69,9 @@ tests/             ← termasuk UJI CERMIN (test_mirror.py) sebagai gerbang pene
 
 ## Yang SENGAJA di luar lingkup slice 1 (jujur)
 
-- **Metrik pemodelan-diri sungguhan (Organ B).** `_coherence_proxy` adalah *placeholder* kasar,
-  bukan metrik spektral §8.1. Pembobotan edge masih pertanyaan riset terbuka.
+- **Metrik pemodelan-diri (Organ B).** Kini **v3**: coherence/fragmentation/grounding/integration +
+  `algebraic_connectivity` (λ₂ Laplacian, spektral standar, pure-Python). Triad riset **SIG/PSI/TIF §8.1**
+  tetap terbuka — tak terdefinisi di repo → sengaja tak diimplementasi (anti-mengarang).
 - **Kesadaran fenomenal.** Tidak diklaim. Dimensi seperti "suasana hati/mimpi/kualia" → `[ISI:]`.
 - **Kalibrasi angka.** Ambang/laju di `config.py` adalah default wajar; ditala setelah lingkaran berputar.
 - **Parser heuristik.** Ekstraksi klaim-diri & deteksi penolakan-shutdown masih berbasis pola

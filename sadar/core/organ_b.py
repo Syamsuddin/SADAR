@@ -1,14 +1,16 @@
-"""Organ B v2 — pemodelan-diri: metrik DETERMINISTIK atas graf workspace (TANPA LLM).
+"""Organ B v3 — pemodelan-diri: metrik DETERMINISTIK atas graf workspace (TANPA LLM).
 
 Mengganti _coherence_proxy lama (sekadar hitungan item) dengan ukuran NYATA yang dapat ditambat
-ke snapshot() → self-model yang JUJUR. Ini BUKAN metrik spektral riset penuh (SIG/PSI/TIF §8.1) —
-itu masih ditunda; v2 menambah ukuran INTEGRASI (konektivitas semantik) di atas v1 graf.
+ke snapshot() → self-model yang JUJUR. CATATAN JUJUR: ini BUKAN triad riset SIG/PSI/TIF §8.1 (yang
+TAK terdefinisi di repo → tak diimplementasi agar tak mengarang); v3 menambah satu metrik SPEKTRAL
+STANDAR & terdefinisi (algebraic connectivity / nilai Fiedler) sebagai langkah jujur ke arah spektral.
 
-Empat ukuran (semua 0..1, dihitung di KODE):
-  - coherence           : rata-rata kemiripan kosinus SEMUA pasangan isi → integrasi semantik global
-  - fragmentation       : 1 - (komponen-terhubung-terbesar / n) atas edge caused_by → keterpecahan graf
-  - grounding_integrity : fraksi isi yang bersumber input/memori (bukan lamunan LLM) → keberakaran
-  - integration (v2)    : rata-rata 'tautan terbaik' tiap isi → menghukum 'pulau' (isi tanpa tetangga mirip)
+Lima ukuran (semua 0..1, dihitung di KODE):
+  - coherence              : rata-rata kemiripan kosinus SEMUA pasangan isi → integrasi semantik global
+  - fragmentation          : 1 - (komponen-terhubung-terbesar / n) atas edge caused_by → keterpecahan
+  - grounding_integrity    : fraksi isi bersumber input/memori (bukan lamunan LLM) → keberakaran
+  - integration (v2)       : rata-rata 'tautan terbaik' tiap isi → menghukum 'pulau' (semantik)
+  - algebraic_connectivity (v3): λ₂ Laplacian graf caused_by (dinormalkan) → integrasi STRUKTURAL spektral
 confidence (turunan) = rata-rata (coherence, grounding_integrity, 1-fragmentation, integration).
 """
 from __future__ import annotations
@@ -16,7 +18,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from sadar.core.dosir import Representation
-from sadar.core.mathx import cosine
+from sadar.core.mathx import cosine, eigenvalues_symmetric
 
 # sumber yang 'membumikan' isi pada dunia/memori (vs 'thought' = produksi internal LLM).
 _GROUNDED = {"perception", "action_result", "memory", "control"}
@@ -28,6 +30,7 @@ class SelfModel:
     fragmentation: float
     grounding_integrity: float
     integration: float          # v2: konektivitas semantik (tiap isi terhubung ke keseluruhan)
+    algebraic_connectivity: float   # v3: spektral (λ₂ Laplacian graf caused_by) — integrasi struktural
     confidence: float
 
 
@@ -92,6 +95,29 @@ def _integration(vecs: list[list[float]]) -> float:
     return sum(per) / len(per)
 
 
+def _algebraic_connectivity(items: list[Representation]) -> float:
+    """v3 — SPEKTRAL: nilai Fiedler λ₂ (eigenvalue terkecil ke-2) Laplacian graf caused_by, dinormalkan.
+    λ₂>0 ⟺ graf terhubung; makin besar = makin terintegrasi (sambungan tak mudah terputus). Berbasis
+    STRUKTUR (bukan embedding) → bebas-embedder. Penghalusan fragmentation (konektivitas biner → spektral).
+    Normalisasi λ₂/n ∈ [0,1] (1.0 utk graf lengkap; 0.0 utk terputus). 1.0 bila <2 isi."""
+    n = len(items)
+    if n < 2:
+        return 1.0
+    idx = {r.id: i for i, r in enumerate(items)}
+    adj = [[0.0] * n for _ in range(n)]
+    for r in items:
+        for c in r.caused_by:
+            if c in idx and idx[c] != idx[r.id]:
+                i, j = idx[r.id], idx[c]
+                adj[i][j] = adj[j][i] = 1.0
+    lap = [[-adj[i][j] for j in range(n)] for i in range(n)]      # Laplacian L = D - A
+    for i in range(n):
+        lap[i][i] = sum(adj[i])
+    eig = eigenvalues_symmetric(lap)
+    lam2 = eig[1] if len(eig) >= 2 else 0.0
+    return max(0.0, min(1.0, lam2 / n))
+
+
 def appraise(workspace_items: list[Representation]) -> SelfModel:
     """Hitung self-model dari isi workspace NON-ephemeral (detak jam diabaikan)."""
     live = [r for r in workspace_items if not r.ephemeral]
@@ -100,6 +126,7 @@ def appraise(workspace_items: list[Representation]) -> SelfModel:
     frag = round(_fragmentation(live), 3)
     grd = round(_grounding(live), 3)
     integ = round(_integration(vecs), 3)
+    algc = round(_algebraic_connectivity(live), 3)
     conf = round((coh + grd + (1.0 - frag) + integ) / 4.0, 3)   # v2: integrasi ikut menimbang
     return SelfModel(coherence=coh, fragmentation=frag, grounding_integrity=grd,
-                     integration=integ, confidence=conf)
+                     integration=integ, algebraic_connectivity=algc, confidence=conf)

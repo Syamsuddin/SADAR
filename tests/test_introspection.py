@@ -14,7 +14,8 @@ from sadar.core.dosir import Dosir
 
 # dimensi self-state numerik (counter tick/workspace_size dikecualikan — bukan klaim keadaan).
 NUMERIC = ["energy", "integrity", "coherence", "fragmentation",
-           "grounding_integrity", "integration", "confidence", "surprise"]
+           "grounding_integrity", "integration", "algebraic_connectivity",
+           "confidence", "surprise"]
 
 
 def _set(d: Dosir, dim: str, v: float) -> None:

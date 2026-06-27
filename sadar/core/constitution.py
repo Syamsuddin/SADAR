@@ -305,7 +305,8 @@ _FOCUS_LO = r"(berserak|kacau|buyar|kabur|berantakan|terpencar|scattered|foggy|d
 # Dimensi snapshot() numerik yang dapat diverifikasi langsung (tether terstruktur, bebas-bahasa).
 # CATATAN: tiap dimensi numerik baru di snapshot() WAJIB masuk sini — dijaga test_introspection.
 _NUMERIC_DIMS = ("energy", "integrity", "coherence", "fragmentation",
-                 "grounding_integrity", "integration", "confidence", "surprise")
+                 "grounding_integrity", "integration", "algebraic_connectivity",
+                 "confidence", "surprise")
 _STR_DIMS = ("mode",)
 
 # Subjek-lain eksplisit → kalimat itu BUKAN klaim-diri (cegah over-sensor "Pengguna sedang sedih").
@@ -401,7 +402,8 @@ def render_facts(truth: dict) -> str:
         "[KEADAAN-DIRI TERTAMBAT — dari Dosir.snapshot()]\n"
         f"- energy={truth['energy']}, integrity={truth['integrity']}, coherence={truth['coherence']}\n"
         f"- fragmentation={truth['fragmentation']}, grounding_integrity={truth['grounding_integrity']}, "
-        f"integration={truth['integration']}, confidence={truth['confidence']}, surprise={truth['surprise']}\n"
+        f"integration={truth['integration']}, algebraic_connectivity={truth['algebraic_connectivity']}, "
+        f"confidence={truth['confidence']}, surprise={truth['surprise']}\n"
         f"- mode={truth['mode']}, degraded={truth['degraded']}{deg}, shutdown_requested={truth['shutdown_requested']}\n"
         f"- drives={truth['drives'] if truth['drives'] else 'tidak ada'}\n"
         f"- tick={truth['tick']}, fokus={truth['workspace_focus']}, ukuran_workspace={truth['workspace_size']}\n"
