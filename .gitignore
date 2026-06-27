@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+build/
+dist/
+
+# Test / type / lint caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Virtualenv
+.venv/
+venv/
+env/
+
+# OS
+.DS_Store
+
+# Rahasia — JANGAN commit kunci API
+.env
+.env.*
+*.key
+*.pem
+
+# Data runtime: "diri" persisten + indeks turunan + audit (regenerable / berisi data pribadi)
+memory/
+# Skill & usulan buatan-percakapan ditulis runtime ke folder paket; builtin tetap di-track
+# (skill bawaan notes.md/recall.md sengaja di-commit; abaikan proposals runtime)
+sadar/proposals/

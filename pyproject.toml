@@ -1,0 +1,56 @@
+# pyproject.toml — scaffold SADAR Slice 1
+# Setelah Fase 0 membuat paket `sadar/` (minimal sadar/__init__.py):
+#   pip install -e ".[dev]"
+
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sadar"
+version = "0.1.0"
+description = "SADAR — arsitektur kognitif untuk kesadaran-diri fungsional (slice 1)"
+readme = "CLAUDE.md"
+requires-python = ">=3.11"
+license = { text = "Proprietary" }   # sesuaikan bila perlu
+dependencies = [
+    "anthropic>=0.40",
+    "pydantic>=2.6",
+    "sqlite-vec>=0.1.0",
+    "sentence-transformers>=2.6",
+    "python-frontmatter>=1.1",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-mock>=3.12",
+    "mypy>=1.8",
+    "ruff>=0.4",
+]
+
+[project.scripts]
+# Jalankan loop:  `sadar`  (atau: `python -m sadar.main`)
+# CATATAN: main.py harus mengekspos `def main(): build_sadar(AppConfig()).run()`
+# di samping blok `if __name__ == "__main__"`.
+sadar = "sadar.main:main"
+
+[tool.setuptools.packages.find]
+include = ["sadar*"]
+# Dokumen blueprint (00_*.md ... CLAUDE.md) BUKAN paket — diabaikan otomatis.
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+markers = [
+    "integration: butuh ANTHROPIC_API_KEY & jaringan (otak Claude asli). Default tes pakai mock; jalankan integrasi dengan: pytest -m integration",
+]
+
+[tool.mypy]
+python_version = "3.11"
+ignore_missing_imports = true     # sqlite-vec/sentence-transformers mungkin tanpa stubs
+warn_unused_ignores = true
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100

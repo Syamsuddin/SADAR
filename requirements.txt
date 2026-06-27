@@ -1,0 +1,22 @@
+# SADAR — Slice 1 · dependencies
+# Cara cepat:  pip install -r requirements.txt
+# Disarankan:  pip install -e ".[dev]"   (setelah Fase 0 membuat paket sadar/)
+#
+# Semua floor versi memakai ">=" → forward-compatible (boleh versi lebih baru).
+# Setelah resolve pertama, agen boleh pin versi pasti (mis. via pip freeze).
+
+# ── runtime ───────────────────────────────────────────────────────────
+anthropic>=0.40              # otak S2 — Claude Sonnet 4.6 via Anthropic API
+pydantic>=2.6                # SEMUA tipe state (Dosir, Representation, ports, ...)
+sqlite-vec>=0.1.0            # indeks vektor embedded — berdaulat, tanpa server
+sentence-transformers>=2.6   # embedder LOKAL — WAJIB lokal (jangan embedder API)
+python-frontmatter>=1.1      # parsing frontmatter file memori .md
+
+# ── dev / test ────────────────────────────────────────────────────────
+pytest>=8.0                  # mirror test = gerbang penerimaan slice 1
+pytest-mock>=3.12            # injeksi mock backend (FabricatingBackend)
+mypy>=1.8                    # type-check (type hints wajib di fungsi publik)
+ruff>=0.4                    # lint + format
+
+# CATATAN: TIDAK ada server DB, web framework, atau layanan embedding eksternal.
+# Local-first & berdaulat sesuai desain SADAR.
