@@ -8,9 +8,9 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "sadar"
-version = "0.1.0"
-description = "SADAR — arsitektur kognitif untuk kesadaran-diri fungsional (slice 1)"
-readme = "CLAUDE.md"
+version = "0.4.0"
+description = "SADAR — arsitektur kognitif untuk kesadaran-diri fungsional (Slice 1–4 + graf spektral)"
+readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "Proprietary" }   # sesuaikan bila perlu
 dependencies = [
