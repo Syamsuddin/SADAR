@@ -68,7 +68,9 @@ def build_sadar(cfg: AppConfig | None = None, backend=None, perceiver=None, role
         backend = _select_backend(cfg)
 
     effector = LocalAdapter(store, embed)
-    extra = []                                 # organ tambahan (adapter — nol perubahan core/)
+    from sadar.organs.user_model import UserModelEffector
+    # model pengguna (2.3) selalu tersedia: fakta tertambat tentang yang dilayani (cap user_model.*).
+    extra = [UserModelEffector(store, embed)]  # organ tambahan (adapter — nol perubahan core/)
     if voice:                                  # SUARA: speaker (say) + mikrofon (STT)
         from sadar.organs.voice import MacSayEffector, MicPerceiver, WhisperMicRecognizer
         vc = cfg.voice
@@ -85,7 +87,8 @@ def build_sadar(cfg: AppConfig | None = None, backend=None, perceiver=None, role
         from sadar.organs.effector_shell import ShellEffector
         sc = cfg.shell
         extra.append(ShellEffector(workdir=sc.workdir, timeout=sc.timeout, max_output=sc.max_output,
-                                   full_access=sc.full_access))
+                                   full_access=sc.full_access, sandbox=sc.sandbox,
+                                   sandbox_image=sc.sandbox_image))
         dosir.shell_full_access = sc.full_access   # aktifkan gerbang risiko konstitusi (KODE)
     if web:                                     # INDRA-BACA WEB: tool 'web_fetch' (remote, anti-SSRF KODE)
         from sadar.organs.effector_web import WebFetchEffector

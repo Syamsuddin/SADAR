@@ -28,6 +28,7 @@ class MemoryEngine:
         self.store = store
         self.embed = embed
         self.cfg = cfg
+        self._summary_buf: list[tuple[str, str]] = []   # (id, content) menunggu diringkas (2.2)
 
     # ---------- recall ----------
     def recall(self, query: str, k: int = 5) -> list[Representation]:
@@ -45,8 +46,9 @@ class MemoryEngine:
         return [_to_repr(it) for _, it in scored[:k]]
 
     # ---------- consolidate ----------
-    def consolidate(self, d: Dosir) -> None:
-        """Item salient di workspace → tulis ke store (jika belum ada)."""
+    def consolidate(self, d: Dosir, backend=None) -> None:
+        """Item salient di workspace → tulis ke store (jika belum ada). Bila summarize_every>0 &
+        ada backend, tiap N item terkonsolidasi diringkas jadi SATU MemoryItem turunan (2.2)."""
         existing = set(self.store.list())
         for rep in d.workspace.items:
             # lewati percept ephemeral (mis. detak jam) — jangan cemari kebenaran persisten.
@@ -62,6 +64,46 @@ class MemoryEngine:
                     importance=min(1.0, 0.4 + rep.activation * 0.4),
                     vec=rep.vec or self.embed(rep.content),
                 ))
+                self._summary_buf.append((rep.id, rep.content))   # antre untuk ringkasan
+        self._maybe_summarize(backend)
+
+    def _maybe_summarize(self, backend) -> None:
+        """Ringkas batch item dingin → MemoryItem turunan (tag 'summary', caused_by=sumber).
+        Ringkasan = KONTEN turunan (LLM boleh; bukan gerbang keselamatan). Sumber MENTAH tetap
+        tersimpan (markdown=kebenaran) → tetap dapat di-audit & di-reindex (Aturan Kardinal #2/#3)."""
+        every = getattr(self.cfg, "summarize_every", 0) if self.cfg else 0
+        if not every or backend is None or len(self._summary_buf) < every:
+            return
+        batch = self._summary_buf[:every]
+        self._summary_buf = self._summary_buf[every:]
+        ids = [i for i, _ in batch]
+        body = "\n".join(f"- {c}" for _, c in batch)
+        try:
+            raw = backend.complete(
+                "Kamu meringkas catatan menjadi satu paragraf padat & faktual. "
+                "JANGAN menambah informasi yang tak ada di catatan; jangan mengarang.",
+                "Ringkas poin-poin berikut jadi satu paragraf intisari:\n" + body, tier="sys2")
+        except Exception:  # noqa: BLE001 — kegagalan S2 tak boleh menjatuhkan konsolidasi
+            self._summary_buf = batch + self._summary_buf   # kembalikan batch; coba lagi nanti
+            return
+        text = (raw or "").strip()
+        if not text:
+            return
+        self.store.write(MemoryItem(
+            content=f"[ringkasan] {text}", tags=["summary"], caused_by=ids,
+            importance=0.7, vec=self.embed(text)))
+
+    # ---------- model pengguna (2.3): fakta tertambat tentang yang dilayani ----------
+    def user_facts(self, limit: int = 6) -> list[MemoryItem]:
+        """MemoryItem ber-tag 'user_model' (terbaru dulu) — disuntik ke konteks agar personal.
+        Tertambat: tiap fakta punya caused_by ke observasi sumber (lihat UserModelEffector)."""
+        items = []
+        for cid in self.store.list():
+            it = self.store.read(cid)
+            if it and "user_model" in it.tags:
+                items.append(it)
+        items.sort(key=lambda i: i.created, reverse=True)
+        return items[:limit]
 
     # ---------- dinamika aktivasi ----------
     def decay_and_spread(self, d: Dosir) -> None:

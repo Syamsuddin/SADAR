@@ -192,6 +192,7 @@ class Engine:
         d.coherence = sm.coherence
         d.fragmentation = sm.fragmentation
         d.grounding_integrity = sm.grounding_integrity
+        d.integration = sm.integration
         d.confidence = sm.confidence
         # 5. CONSTITUTION refleks (otonom)
         self.constitution.enforce_reflex(d)
@@ -209,8 +210,8 @@ class Engine:
                 self._enter_degraded(d, cause="s2_unreachable")
         else:
             d.mode = "autonomous"
-        # 10. CONSOLIDATE
-        self.memory.consolidate(d)
+        # 10. CONSOLIDATE (+ ringkasan turunan bila diaktifkan — 2.2)
+        self.memory.consolidate(d, self.backend)
         d.tick_count += 1
 
     def _safe_complete(self, system: str, context: str) -> str | None:
@@ -466,7 +467,12 @@ class Engine:
             for sk in d.skills
         )
         skills_block = f"Kompetensi (skill) yang kamu kuasai:\n{skills_desc}\n" if skills_desc else ""
+        # 2.3: fakta-pengguna TERTAMBAT (dari store) → personal tanpa mengarang. Inti hanya merender.
+        facts = self.memory.user_facts() if hasattr(self.memory, "user_facts") else []
+        user_block = ("Tentang pengguna (tertambat observasi):\n"
+                      + "\n".join(f"  - {f.content}" for f in facts) + "\n") if facts else ""
         return (
+            user_block +
             "Percakapan terkini (giliran terbaru di bawah; tanggapi yang terakhir):\n"
             f"{convo}\n"
             f"{work}\n"

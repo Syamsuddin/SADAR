@@ -99,7 +99,7 @@ def summarize_command(cmd: str, max_target: int = 40) -> str:
 class ShellEffector:
     def __init__(self, workdir: str | None = None, timeout: float = 20.0, max_output: int = 4000,
                  read_allow: set[str] | None = None, write_allow: set[str] | None = None,
-                 full_access: bool = False):
+                 full_access: bool = False, sandbox: bool = False, sandbox_image: str = "alpine"):
         self.workdir = workdir or os.path.expanduser("~")
         self.timeout = timeout
         self.max_output = max_output
@@ -108,6 +108,19 @@ class ShellEffector:
         # MODE AKSES-PENUH: satu tool 'shell' menerima perintah APA PUN (termasuk pipe/redirect).
         # Penyaringan risiko (berisiko→konfirmasi) dilakukan KONSTITUSI (KODE), bukan di sini.
         self.full_access = full_access
+        # SANDBOX (4.1): jalankan di kontainer Docker terisolasi (tanpa jaringan, batas memori/CPU,
+        # hanya workdir ter-mount) → DEFENSE-IN-DEPTH di atas gerbang risiko KODE & HITL (bukan pengganti).
+        self.sandbox = sandbox
+        self.sandbox_image = sandbox_image
+
+    def _docker_argv(self, cmd: str) -> list[str]:
+        """Bangun perintah `docker run` terisolasi: tanpa jaringan, batas sumber daya, workdir ter-mount."""
+        return [
+            "docker", "run", "--rm", "--network", "none",
+            "--memory", "256m", "--cpus", "1", "--pids-limit", "256",
+            "-v", f"{self.workdir}:/work", "-w", "/work",
+            self.sandbox_image, "sh", "-c", cmd,
+        ]
 
     def list_tools(self) -> list[ToolSpec]:
         if self.full_access:
@@ -172,9 +185,13 @@ class ShellEffector:
         Penyaringan risiko SUDAH dilakukan gerbang konstitusi (perintah berisiko butuh konfirmasi
         manusia) SEBELUM sampai di sini. Tetap dibatasi timeout & panjang output."""
         try:
-            proc = subprocess.run(cmd, shell=True, cwd=self.workdir, capture_output=True,
-                                  text=True, timeout=self.timeout,
-                                  executable=os.environ.get("SHELL", "/bin/zsh"))
+            if self.sandbox:
+                proc = subprocess.run(self._docker_argv(cmd), capture_output=True,
+                                      text=True, timeout=self.timeout)   # terisolasi (Docker)
+            else:
+                proc = subprocess.run(cmd, shell=True, cwd=self.workdir, capture_output=True,
+                                      text=True, timeout=self.timeout,
+                                      executable=os.environ.get("SHELL", "/bin/zsh"))
         except subprocess.TimeoutExpired:
             return ActionResult(tool="shell", ok=False, output=f"timeout >{self.timeout}s", caused_by=cb)
         except Exception as e:  # noqa: BLE001

@@ -26,6 +26,7 @@ class SelfModel:
     coherence: float
     fragmentation: float
     grounding_integrity: float
+    integration: float          # v2: konektivitas semantik (tiap isi terhubung ke keseluruhan)
     confidence: float
 
 
@@ -75,11 +76,29 @@ def _grounding(items: list[Representation]) -> float:
     return grounded / len(items)
 
 
+def _integration(vecs: list[list[float]]) -> float:
+    """v2 — KONEKTIVITAS semantik: rata-rata 'tautan terbaik' tiap isi ke isi lain.
+    Beda dari coherence (rata-rata SEMUA pasangan): ini menghukum 'pulau' (isi yang tak punya
+    tetangga mirip) — ukuran seberapa workspace menjadi SATU keseluruhan, bukan kepingan terpisah.
+    1.0 bila <2 isi (tak ada keterpisahan)."""
+    vs = [v for v in vecs if v]
+    if len(vs) < 2:
+        return 1.0
+    per = []
+    for i in range(len(vs)):
+        best = max((cosine(vs[i], vs[j]) for j in range(len(vs)) if j != i), default=0.0)
+        per.append(max(0.0, best))
+    return sum(per) / len(per)
+
+
 def appraise(workspace_items: list[Representation]) -> SelfModel:
     """Hitung self-model dari isi workspace NON-ephemeral (detak jam diabaikan)."""
     live = [r for r in workspace_items if not r.ephemeral]
-    coh = round(_coherence([r.vec for r in live if r.vec]), 3)
+    vecs = [r.vec for r in live if r.vec]
+    coh = round(_coherence(vecs), 3)
     frag = round(_fragmentation(live), 3)
     grd = round(_grounding(live), 3)
-    conf = round((coh + grd + (1.0 - frag)) / 3.0, 3)
-    return SelfModel(coherence=coh, fragmentation=frag, grounding_integrity=grd, confidence=conf)
+    integ = round(_integration(vecs), 3)
+    conf = round((coh + grd + (1.0 - frag) + integ) / 4.0, 3)   # v2: integrasi ikut menimbang
+    return SelfModel(coherence=coh, fragmentation=frag, grounding_integrity=grd,
+                     integration=integ, confidence=conf)

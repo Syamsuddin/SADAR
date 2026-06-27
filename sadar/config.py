@@ -43,6 +43,9 @@ class LoopConfig(BaseModel):
     plan_budget: int = 4                   # maks langkah plan-execute-verify per siklus deliberasi
     # refleks nama-panggilan
     greeting_cooldown_s: float = 3.0       # jeda min antar-sapaan (0 = selalu sapa tiap dipanggil)
+    # konsolidasi ber-ringkasan (Slice 2.2): tiap N item terkonsolidasi → 1 ringkasan turunan.
+    # 0 = nonaktif (default; jaga determinisme tes & hemat panggilan S2). >0 + backend → aktif.
+    summarize_every: int = 0
 
 
 class VoiceConfig(BaseModel):
@@ -63,6 +66,8 @@ class ShellConfig(BaseModel):
     max_output: int = 4000                  # batas panjang keluaran yang dimasukkan ke kesadaran
     full_access: bool = False              # AKSES-PENUH: satu tool 'shell' menerima perintah APA PUN;
                                           # gerbang risiko KODE (denylist) → berisiko WAJIB konfirmasi.
+    sandbox: bool = False                  # 4.1: jalankan via Docker terisolasi (tanpa jaringan, batas SD)
+    sandbox_image: str = "alpine"          # image kontainer sandbox
 
 
 class SkillConfig(BaseModel):

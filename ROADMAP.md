@@ -39,11 +39,47 @@ Yang **sudah** ada (jangan dibangun ulang):
 - Organ B v1 (coherence/fragmentation/grounding/confidence) + metakognisi (surprise/confidence).
 - Memori: markdown=kebenaran + indeks sqlite turunan + embedder lokal; recall berperingkat, konsolidasi, decay/spread.
 - Permission model per-Peran (`granted_caps`×`required_caps`); HITL (`_confirmed` di-set KODE).
-- Skill markdown **statik** + capability firewall.
+- Skill markdown + capability firewall **(kini DINAMIS via creator — lihat 2.1 ✅)**.
 - Organ suara (mic→STT lokal, TTS) + CLI shell (allowlist/akses-penuh, risk-gate) + chat teks/suara.
 - Audit log append-only hash-chained.
 - Peran kedua (researcher read-only) → bukti buta-platform.
-- ~103 tes sebagai guardrail.
+- **162 tes** sebagai guardrail (per pembaruan ini).
+
+---
+
+## §1.5 · Status terkini  `[DIPERBARUI]`
+
+Sudah **SELESAI** sejak roadmap disusun (suite: **162 passed, 1 skipped**; mirror test tetap LULUS):
+
+- ✅ **2.1 Skill creator + firewall** — buat/hapus skill `.md` dari percakapan (HITL "simpan?"); firewall
+  caps+tools; aktivasi by-firewall (skill buatan otomatis aktif sesi berikutnya). *(tes: `test_skill_creator.py`, `test_skills.py`)*
+- ✅ **2.2 Konsolidasi ber-ringkasan** — tiap N item dingin → 1 `MemoryItem` ringkasan TURUNAN (tag
+  `summary`, `caused_by`=sumber); sumber mentah tetap (md=kebenaran); opt-in `summarize_every`. *(tes: `test_summary.py`)*
+- ✅ **2.3 Model pengguna tertambat** — `user_remember`/`user_recall`; tiap fakta WAJIB ber-observasi
+  (`caused_by`) atau ditolak; bertahan lintas-restart; disuntik ke konteks ("Tentang pengguna"). *(tes: `test_user_model.py`)*
+- ✅ **3.1 Multi-kanal (Telegram)** — `channel_telegram.py` (Perceiver+Effector) + `CompositePerceiver`;
+  pairing via KODE; nol perubahan `core/`. *(tes: `test_channel.py`)*
+- ✅ **3.2 Keluasan model** — `OllamaBackend` (lokal-berdaulat) + selektor `config.brain.backend`
+  (`auto|claude|ollama|offline`); keselamatan tak ikut berganti. *(tes: `test_backend_ollama.py`)*
+- ✅ **Bonus — Tool Draft (hormati §5)** — `tool_propose` menulis usulan tool **INERT** untuk ditinjau
+  manusia; tak pernah auto-aktif (Aturan Kardinal #1 utuh). *(tes: `test_tool_draft.py`)*
+- ✅ **Bonus — Manajemen tool via chat** — `tool_disable` (langsung) / `tool_enable` (HITL); `disabled_tools`
+  set-sesi; kuasa hanya bisa DIKURANGI lewat chat. *(tes: `test_tool_manage.py`)*
+- ✅ **Bonus — Indra-baca web** — `web_fetch` (anti-SSRF di KODE, `leaves_premises`). *(tes: `test_web.py`)*
+- ✅ **Bonus — Store sqlite-vec** — `memory_sqlitevec.py` (indeks vektor alternatif). *(tes: `test_sqlitevec.py`)*
+- ✅ **Bonus — Skill bawaan** — `linux-ssh` (CLI server Linux via SSH) & `macos-files` (kelola berkas Mac).
+- ✅ **4.1 Sandbox Docker** — `ShellEffector(sandbox=True)`: eksekusi via kontainer terisolasi (tanpa
+  jaringan, batas memori/CPU/pids, hanya workdir ter-mount); defense-in-depth di atas gerbang risiko. *(tes: `test_sandbox.py`)*
+- ✅ **4.2 Organ B v2** — metrik **integrasi** (konektivitas semantik: hukum 'pulau') masuk snapshot &
+  ditambat Organ C; confidence v2 (4 komponen). *(tes: `test_organ_b.py`, `test_introspection.py`)*
+- ✅ **4.3 config doctor** — `sadar/doctor.py` + `scripts/doctor.py`: audit postur risiko (akses-penuh,
+  SSRF, store remote, caps berdampak). Pairing pengirim-tak-dikenal sudah ada (Telegram). *(tes: `test_doctor.py`)*
+- ✅ **4.4 kalibrasi** — regresi default menjaga loop hidup (tak macet/over-deliberasi/kuras energi). *(tes: `test_calibration.py`)*
+
+**Belum:** 3.3 kebijakan pluggable per-Peran · 4.3 multi-user penuh (beberapa pengguna lewat kanal).
+
+> **SLICE 2 = SELESAI** (2.1+2.2+2.3) ✅ · **SLICE 4 ~ SELESAI** (4.1+4.2+4.3+4.4; sisa: multi-user penuh) ✅
+> — mirror test tetap LULUS, firewall & anti-fabrikasi hijau (suite: **183 passed, 2 skipped**).
 
 ---
 
@@ -51,16 +87,16 @@ Yang **sudah** ada (jangan dibangun ulang):
 
 | Celah SADAR | Terlihat dari | Port/Organ sasaran | Prioritas |
 |---|---|---|---|
-| **Learning loop** (skill lahir & memperbaiki diri) | Hermes (telak), OpenClaw (ClawHub) | `organs/skill_store.py` + tool baru | **P0** |
-| **Memori reflektif** (ringkasan LLM, recall lintas-sesi kaya) | Hermes (FTS5+ringkas), OpenHands (condenser) | `core/memory.py` | **P0** |
-| **Model pengguna** eksplisit | Hermes (Honcho) | `core/dosir.py` + Organ C | **P1** |
-| **Jangkauan multi-kanal** (pesan/aplikasi) | OpenClaw (20+ kanal) | `organs/` adapter Perceiver+Effector | **P1** |
-| **Keluasan model** (banyak LLM, ganti tanpa ubah kode) | Hermes (300+), OpenHands (LiteLLM/ACP) | `organs/` adapter `ModelBackend` | **P1** |
-| **Sandbox eksekusi** (isolasi runtime) | OpenHands (Docker) | `organs/effector_shell.py` (varian) | **P2** |
+| ✅ **Learning loop** (skill creator + firewall) | Hermes (telak), OpenClaw (ClawHub) | `organs/skill_store.py` + `skill_effector.py` | **P0 — SELESAI** |
+| ✅ **Memori reflektif** (ringkasan turunan tertelusur) | Hermes (FTS5+ringkas), OpenHands (condenser) | `core/memory.py` | **P0 — SELESAI** |
+| ✅ **Model pengguna** tertambat | Hermes (Honcho) | `organs/user_model.py` + `core/memory.py` | **P1 — SELESAI** |
+| ✅ **Jangkauan multi-kanal** (Telegram) | OpenClaw (20+ kanal) | `organs/channel_telegram.py` + `composite.py` | **P1 — SELESAI** |
+| ✅ **Keluasan model** (Ollama + selektor) | Hermes (300+), OpenHands (LiteLLM/ACP) | `organs/backend_ollama.py` + `config.brain.backend` | **P1 — SELESAI** |
+| ✅ **Sandbox eksekusi** (isolasi runtime) | OpenHands (Docker) | `organs/effector_shell.py` (sandbox) | **P2 — SELESAI** |
 | **Kebijakan keselamatan pluggable** per-Peran | OpenHands (Analyzer/Policy) | `core/constitution.py` (antarmuka) | **P2** |
-| **Multi-user / pairing** | OpenClaw (DM pairing) | adapter kanal + Peran | **P2** |
-| **Organ B v2** (metrik lebih nyata) | (utang teknis sendiri) | `core/organ_b.py` | **P2** |
-| **Kalibrasi angka** `[TERBUKA]` | (utang teknis sendiri) | `config.py` + harness | **P3** |
+| 🟡 **Multi-user / pairing** | OpenClaw (DM pairing) | adapter kanal + Peran | **P2 — pairing ✅, multi-user belum** |
+| ✅ **Organ B v2** (metrik integrasi) | (utang teknis sendiri) | `core/organ_b.py` | **P2 — SELESAI** |
+| ✅ **Kalibrasi angka** `[TERBUKA]` | (utang teknis sendiri) | `tests/test_calibration.py` | **P3 — SELESAI** |
 
 Yang SADAR **menang** dan **wajib dipertahankan sambil tumbuh**: konstitusi-KODE, tombol-mati, kejujuran-diri,
 metabolisme, inti buta-platform. Setiap fitur baru **menambah** tanpa melemahkan ini.
@@ -74,11 +110,11 @@ Penamaan melanjutkan "Slice 1". Tiap fitur ditulis sebagai mini-spec:
 
 ---
 
-### 🌱 SLICE 2 — "Tumbuh tanpa kehilangan diri"  `(P0)`
+### 🌱 SLICE 2 — "Tumbuh tanpa kehilangan diri"  `(P0)` — ✅ SELESAI (2.1 + 2.2 + 2.3)
 > Menutup celah **terbesar & paling berulang**: SADAR tak belajar dari pengalaman. Tema: agen
 > jadi lebih cakap makin lama berjalan — **tanpa** menambah kuasa diam-diam dan **tanpa** mengarang.
 
-#### 2.1 Auto-skill creation (lewat firewall)  ⟵ Hermes, OpenClaw
+#### 2.1 Auto-skill creation (lewat firewall)  ⟵ Hermes, OpenClaw  ✅ SELESAI
 - **Apa/Mengapa:** SADAR menulis `SKILL.md` baru saat menyelesaikan tugas multi-langkah berulang, agar tak
   mengulang penalaran. Inilah "learning loop" yang dimiliki Hermes/Voyager dan ditunda di slice 1.
 - **Di mana:** tool baru `skill_create`/`skill_update` di effector; ditulis via `SkillStore.write()`
@@ -91,7 +127,7 @@ Penamaan melanjutkan "Slice 1". Tiap fitur ditulis sebagai mini-spec:
   - `test_autoskill_cannot_grant_new_caps` — skill menuntut cap tak-diberikan → **inactive** (diveto firewall).
   - `test_autoskill_only_composes_allowed_tools` — skill rujuk tool tak-tersedia → inactive.
 
-#### 2.2 Konsolidasi memori ber-ringkasan  ⟵ Hermes (FTS5+ringkas), OpenHands (condenser)
+#### 2.2 Konsolidasi memori ber-ringkasan  ⟵ Hermes (FTS5+ringkas), OpenHands (condenser)  ✅ SELESAI
 - **Apa/Mengapa:** workspace lama/berlebih diringkas LLM → recall lebih padat, konteks tak meluap (OpenHands
   klaim ~2× hemat). Memperkaya `consolidate()` tanpa melanggar md=kebenaran.
 - **Di mana:** `core/memory.py` — langkah `summarize_cold()` opsional di `consolidate()`; ringkasan disimpan
@@ -105,7 +141,7 @@ Penamaan melanjutkan "Slice 1". Tiap fitur ditulis sebagai mini-spec:
   - `test_reindex_still_lossless_with_summaries` — `reindex()` tetap nol-kehilangan.
   - `test_consolidate_without_backend_still_works` — tanpa S2, konsolidasi non-ringkas tetap jalan (degraded jujur).
 
-#### 2.3 Model pengguna tertambat  ⟵ Hermes (Honcho dialectic)
+#### 2.3 Model pengguna tertambat  ⟵ Hermes (Honcho dialectic)  ✅ SELESAI
 - **Apa/Mengapa:** SADAR membangun model "siapa yang kulayani" lintas-sesi (preferensi, proyek) — sumber utama
   "makin personal makin berguna" di Hermes.
 - **Di mana:** field `user_model` di `core/dosir.py` (atau koleksi `MemoryItem` tag `user_model`); diisi dari
@@ -119,14 +155,15 @@ Penamaan melanjutkan "Slice 1". Tiap fitur ditulis sebagai mini-spec:
 
 **Definisi selesai Slice 2:** SADAR menulis skill dari pengalaman (lewat firewall), meringkas memori dingin
 (tertelusur), dan menyimpan model-pengguna yang tertambat — **mirror test tetap LULUS**, firewall & anti-fabrikasi hijau.
+**✅ TERCAPAI** (suite: 170 passed, 1 skipped; terbukti live dgn otak Claude).
 
 ---
 
-### 🌍 SLICE 3 — "Menjangkau dunia"  `(P1)`
+### 🌍 SLICE 3 — "Menjangkau dunia"  `(P1)` — 🟡 sebagian (3.1, 3.2 ✅)
 > Menutup celah jangkauan (OpenClaw) & keluasan model (Hermes/OpenHands). **Bukti emas tesis buta-platform:**
 > hampir semuanya **nol-perubahan `core/`**.
 
-#### 3.1 Adapter multi-kanal  ⟵ OpenClaw (20+ kanal)
+#### 3.1 Adapter multi-kanal  ⟵ OpenClaw (20+ kanal)  ✅ SELESAI (Telegram)
 - **Apa/Mengapa:** SADAR hadir di Telegram/WhatsApp/Discord dst. Tiap kanal = sepasang **Perceiver + Effector**.
 - **Di mana:** `organs/channel_telegram.py` (mulai satu kanal) implement `Perceiver` (pesan masuk → persepsi)
   & `Effector` (tool `send_message`). Wiring via `build_sadar(channels=[...])` + `CompositeEffector` yang sudah ada.
@@ -138,7 +175,7 @@ Penamaan melanjutkan "Slice 1". Tiap fitur ditulis sebagai mini-spec:
   - `test_channel_message_goes_through_pola1` — input kanal tak pernah jadi prompt mentah.
   - `test_channel_say_still_gated` — ucapan keluar tetap lewat gerbang konstitusi (anti bohong-diri).
 
-#### 3.2 Keluasan model (adapter `ModelBackend` baru)  ⟵ Hermes (300+), OpenHands (LiteLLM/ACP)
+#### 3.2 Keluasan model (adapter `ModelBackend` baru)  ⟵ Hermes (300+), OpenHands (LiteLLM/ACP)  ✅ SELESAI (Ollama)
 - **Apa/Mengapa:** dukung banyak penyedia/model, ganti tanpa ubah kode.
 - **Di mana:** `organs/backend_litellm.py` (atau `backend_openai.py`, …) implement `ModelBackend`;
   pilihan via `config.BrainConfig`. Auto-pilih di `build_sadar()`.
@@ -164,17 +201,17 @@ Penamaan melanjutkan "Slice 1". Tiap fitur ditulis sebagai mini-spec:
 
 ---
 
-### 🛡️ SLICE 4 — "Pengerasan & kedalaman"  `(P2–P3)`
+### 🛡️ SLICE 4 — "Pengerasan & kedalaman"  `(P2–P3)` — ✅ ~SELESAI (4.1+4.2+4.3+4.4; sisa: multi-user penuh)
 > Memantapkan keselamatan-eksekusi & ketelitian self-model; melunasi utang teknis sendiri.
 
-#### 4.1 Runtime sandbox (pengerasan eksekusi)  ⟵ OpenHands (Docker)
+#### 4.1 Runtime sandbox (pengerasan eksekusi)  ⟵ OpenHands (Docker)  ✅ SELESAI
 - **Apa/Mengapa:** isolasi dampak perintah shell (defense-in-depth di atas gerbang risiko KODE yang sudah ada).
 - **Di mana:** varian `ShellEffectorDocker` di `organs/effector_shell.py` (atau modul baru) — port `Effector` tak berubah.
 - **Penjaga Aturan Kardinal:** sandbox **melengkapi**, bukan menggantikan, gerbang risiko KODE & HITL.
   Hasil tetap kembali jadi persepsi (anti fire-and-forget).
 - **Tes:** `test_docker_sandbox_isolates_filesystem`, `test_sandbox_still_returns_action_result`.
 
-#### 4.2 Organ B v2 (metrik lebih nyata)  ⟵ utang teknis (§8.1 ditunda)
+#### 4.2 Organ B v2 (metrik lebih nyata)  ⟵ utang teknis (§8.1 ditunda)  ✅ SELESAI
 - **Apa/Mengapa:** menggantikan proxy v1 menuju metrik integrasi yang lebih dekat spektral; memperkaya self-model jujur.
 - **Di mana:** `core/organ_b.py`; dimensi baru masuk `Dosir.snapshot()`.
 - **Penjaga Aturan Kardinal:** **tiap dimensi numerik baru di snapshot WAJIB masuk `_NUMERIC_DIMS`** dan
@@ -182,14 +219,14 @@ Penamaan melanjutkan "Slice 1". Tiap fitur ditulis sebagai mini-spec:
   jujur (v2, bukan klaim fenomenal).
 - **Tes:** `test_organ_b_v2_dims_are_tetherable`, perluas `test_introspection`.
 
-#### 4.3 Multi-user + pairing + config doctor  ⟵ OpenClaw
+#### 4.3 Multi-user + pairing + config doctor  ⟵ OpenClaw  🟡 SEBAGIAN (pairing + config doctor ✅; multi-user penuh belum)
 - **Apa/Mengapa:** beberapa pengguna lewat kanal; pairing untuk pengirim tak dikenal; audit konfigurasi berisiko.
 - **Di mana:** lapisan di adapter kanal (bukan `core/`); util `sadar doctor`.
 - **Penjaga Aturan Kardinal:** identitas/izin per-user **di KODE** (bukan `SOUL.md`-soft ala OpenClaw); pesan
   user tak dikenal **tak diproses** sebelum di-pairing (default-deny).
 - **Tes:** `test_unpaired_sender_ignored`, `test_doctor_flags_risky_config`.
 
-#### 4.4 Kalibrasi angka `[TERBUKA]`  ⟵ utang teknis
+#### 4.4 Kalibrasi angka `[TERBUKA]`  ⟵ utang teknis  ✅ SELESAI
 - **Apa/Mengapa:** ambang/laju `config.py` masih default wajar; tala setelah lingkaran berputar (Bau #9).
 - **Di mana:** harness tuning (skenario → metrik) di `tests/`/`scripts/`; angka tetap di `config.py`.
 - **Penjaga Aturan Kardinal:** kalibrasi **tak mengubah** struktur keselamatan; hanya parameter `[TERBUKA]`.
@@ -218,6 +255,10 @@ R └─────────────────────────
 - **Pembuktian tesis murah:** 3.1 (multi-kanal) — dampak tinggi, nyaris nol perubahan `core/`.
 
 **Urutan rekomendasi:** Slice 2 (2.2 → 2.1 → 2.3) → Slice 3 (3.2 → 3.1 → 3.3) → Slice 4 (4.1 → 4.2 → 4.3 → 4.4).
+
+> **Progres:** ✅ **SLICE 2** (2.1–2.3) · ✅ **SLICE 4** (4.1, 4.2, 4.3, 4.4) · **3.1, 3.2** ✅
+> (+ bonus: tool-draft, tool-manage, web_fetch, sqlite-vec). **Sisa:** 3.3 kebijakan pluggable per-Peran ·
+> 4.3 multi-user penuh. **Fokus berikutnya:** 3.3 → multi-user.
 
 ---
 
