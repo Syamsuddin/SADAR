@@ -50,6 +50,9 @@ class LoopConfig(BaseModel):
     # anti-fabrikasi KLAIM-DUNIA: rincian faktual spesifik yang tak tertambat observasi → ditandai
     # "belum terverifikasi" di jawaban. True = aktif (hanya menambah catatan jujur, tak memveto).
     ground_world_claims: bool = True
+    # recall ber-graf-spektral: boost kandidat SENTRAL (eigenvector centrality graf-kemiripan).
+    spectral_recall: bool = True
+    spectral_recall_weight: float = 0.3
 
 
 class VoiceConfig(BaseModel):

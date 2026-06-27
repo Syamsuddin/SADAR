@@ -34,16 +34,29 @@ class MemoryEngine:
     def recall(self, query: str, k: int = 5) -> list[Representation]:
         qvec = self.embed(query)
         cand_ids = self.store.search(qvec, k * 3)        # kandidat KASAR
-        scored: list[tuple[float, MemoryItem]] = []
+        items: list[MemoryItem] = []
+        vecs: list[list[float]] = []
+        scores: list[float] = []
         for cid in cand_ids:
             item = self.store.read(cid)
             if item is None:
                 continue
-            sim = cosine(qvec, item.vec or self.embed(item.content))
-            score = sim * (0.5 + 0.5 * item.importance)   # PERINGKAT di sini
-            scored.append((score, item))
-        scored.sort(key=lambda t: t[0], reverse=True)
-        return [_to_repr(it) for _, it in scored[:k]]
+            v = item.vec or self.embed(item.content)
+            sim = cosine(qvec, v)
+            items.append(item)
+            vecs.append(v)
+            scores.append(sim * (0.5 + 0.5 * item.importance))   # relevansi×kepentingan
+        if not items:
+            return []
+        # GRAF SPEKTRAL: boost kandidat yang SENTRAL di graf-kemiripan (terhubung ke banyak kandidat
+        # relevan lain → 'hub' pengetahuan). Konservatif: hanya menambah, relevansi tetap dominan.
+        if getattr(self.cfg, "spectral_recall", True) and len(items) >= 3:
+            from sadar.core.spectral import eigenvector_centrality, similarity_graph
+            cent = eigenvector_centrality(similarity_graph(vecs))
+            w = getattr(self.cfg, "spectral_recall_weight", 0.3)
+            scores = [scores[i] * (1.0 + w * cent[i]) for i in range(len(items))]
+        order = sorted(range(len(items)), key=lambda i: scores[i], reverse=True)
+        return [_to_repr(items[i]) for i in order[:k]]
 
     # ---------- consolidate ----------
     def consolidate(self, d: Dosir, backend=None) -> None:

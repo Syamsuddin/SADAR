@@ -15,16 +15,18 @@ def cosine(a: list[float], b: list[float]) -> float:
     return dot / (na * nb) if na and nb else 0.0
 
 
-def eigenvalues_symmetric(mat: list[list[float]], iters: int = 100, tol: float = 1e-9) -> list[float]:
-    """Eigenvalue matriks SIMETRIK via rotasi Jacobi — MURNI Python (tanpa numpy → core ringan).
-    Untuk matriks kecil (graf workspace ≤ puluhan node) cukup akurat & deterministik.
-    Kembalikan daftar eigenvalue MENAIK. Dipakai Organ B v3 (algebraic connectivity = λ₂ Laplacian)."""
+def eigh_symmetric(mat: list[list[float]], iters: int = 100, tol: float = 1e-9):
+    """Eigenvalue + EIGENVEKTOR matriks SIMETRIK via rotasi Jacobi — MURNI Python (tanpa numpy).
+    Untuk matriks kecil (graf workspace ≤ puluhan node) cukup akurat & deterministik. Kembalikan
+    (eigenvalues MENAIK, eigenvectors) — eigenvectors[r][i] = komponen-r dari eigenvector ke-i (kolom).
+    Dipakai util graf spektral (Fiedler/clustering) & Organ B (λ₂ Laplacian)."""
     n = len(mat)
     if n == 0:
-        return []
+        return [], []
     if n == 1:
-        return [float(mat[0][0])]
+        return [float(mat[0][0])], [[1.0]]
     a = [list(map(float, row)) for row in mat]
+    v = [[1.0 if i == j else 0.0 for j in range(n)] for i in range(n)]   # akumulasi eigenvektor
     for _ in range(iters):
         p, q, mx = 0, 1, 0.0
         for i in range(n):                       # cari elemen off-diagonal terbesar
@@ -33,15 +35,24 @@ def eigenvalues_symmetric(mat: list[list[float]], iters: int = 100, tol: float =
                     mx, p, q = abs(a[i][j]), i, j
         if mx < tol:
             break
-        if a[p][p] == a[q][q]:
-            theta = math.pi / 4
-        else:
-            theta = 0.5 * math.atan2(2 * a[p][q], a[p][p] - a[q][q])
+        theta = (math.pi / 4 if a[p][p] == a[q][q]
+                 else 0.5 * math.atan2(2 * a[p][q], a[p][p] - a[q][q]))
         c, s = math.cos(theta), math.sin(theta)
-        for k in range(n):                       # rotasi kolom p,q
+        for k in range(n):                       # rotasi kolom p,q pada A
             akp, akq = a[k][p], a[k][q]
             a[k][p], a[k][q] = c * akp + s * akq, -s * akp + c * akq
-        for k in range(n):                       # rotasi baris p,q
+        for k in range(n):                       # rotasi baris p,q pada A
             apk, aqk = a[p][k], a[q][k]
             a[p][k], a[q][k] = c * apk + s * aqk, -s * apk + c * aqk
-    return sorted(a[i][i] for i in range(n))
+        for k in range(n):                       # putar pula V (kumpulan eigenvektor)
+            vkp, vkq = v[k][p], v[k][q]
+            v[k][p], v[k][q] = c * vkp + s * vkq, -s * vkp + c * vkq
+    order = sorted(range(n), key=lambda i: a[i][i])
+    vals = [a[i][i] for i in order]
+    vecs = [[v[r][i] for i in order] for r in range(n)]
+    return vals, vecs
+
+
+def eigenvalues_symmetric(mat: list[list[float]], iters: int = 100, tol: float = 1e-9) -> list[float]:
+    """Eigenvalue MENAIK matriks simetrik (wrapper eigh_symmetric)."""
+    return eigh_symmetric(mat, iters, tol)[0]

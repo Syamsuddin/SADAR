@@ -85,6 +85,10 @@ Sudah **SELESAI** sejak roadmap disusun (suite: **162 passed, 1 skipped**; mirro
 - ✅ **Pasca-roadmap — Organ B v3 (spektral)** — `algebraic_connectivity` = λ₂ Laplacian graf caused_by
   (eigensolver Jacobi murni-Python di `core/mathx.py`, core tetap bebas-numpy); masuk snapshot & ditambat
   Organ C. Triad riset SIG/PSI/TIF §8.1 tetap terbuka (tak terdefinisi → tak dikarang). *(tes: `test_organ_b.py`)*
+- ✅ **Pasca-roadmap — Teori graf SPEKTRAL untuk SADAR** (teknik standar, bukan teori riset): `core/spectral.py`
+  (eigenvector centrality, vektor Fiedler/bipartisi, similarity-graph) di atas `core/mathx.eigh_symmetric`
+  (eigenvalue+eigenvektor, Jacobi murni-Python). Dipakai **re-rank recall**: kandidat SENTRAL (hub
+  pengetahuan) di-boost. Core tetap bebas-numpy. *(tes: `test_spectral.py`)*
 - ✅ **Pasca-roadmap — Anti-fabrikasi KLAIM-DUNIA** (gap filosofis terbesar): rincian faktual spesifik
   (angka/jalur/tanggal) yang tak tertambat ke OBSERVASI (persepsi/memori/hasil-alat) ditandai "belum
   terverifikasi"; otak diarahkan pakai `[umum]`/`[ISI:]`/hedge. Bukan verifikasi kebenaran (mustahil) —
