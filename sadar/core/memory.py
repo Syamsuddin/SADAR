@@ -81,30 +81,34 @@ class MemoryEngine:
         self._maybe_summarize(backend)
 
     def _maybe_summarize(self, backend) -> None:
-        """Ringkas batch item dingin → MemoryItem turunan (tag 'summary', caused_by=sumber).
-        Ringkasan = KONTEN turunan (LLM boleh; bukan gerbang keselamatan). Sumber MENTAH tetap
-        tersimpan (markdown=kebenaran) → tetap dapat di-audit & di-reindex (Aturan Kardinal #2/#3)."""
+        """Ringkas batch item dingin PER-TEMA SPEKTRAL → satu MemoryItem turunan per tema kohesif
+        (tag 'summary', caused_by=anggota tema). Tema = komponen graf-kemiripan (clustering spektral).
+        Ringkasan = KONTEN turunan (LLM boleh; bukan gerbang). Sumber MENTAH tetap (md=kebenaran);
+        item off-tema (singleton) TAK dipaksa-ringkas — tak ada penggabungan tema yang menyesatkan."""
         every = getattr(self.cfg, "summarize_every", 0) if self.cfg else 0
         if not every or backend is None or len(self._summary_buf) < every:
             return
         batch = self._summary_buf[:every]
         self._summary_buf = self._summary_buf[every:]
-        ids = [i for i, _ in batch]
-        body = "\n".join(f"- {c}" for _, c in batch)
-        try:
-            raw = backend.complete(
-                "Kamu meringkas catatan menjadi satu paragraf padat & faktual. "
-                "JANGAN menambah informasi yang tak ada di catatan; jangan mengarang.",
-                "Ringkas poin-poin berikut jadi satu paragraf intisari:\n" + body, tier="sys2")
-        except Exception:  # noqa: BLE001 — kegagalan S2 tak boleh menjatuhkan konsolidasi
-            self._summary_buf = batch + self._summary_buf   # kembalikan batch; coba lagi nanti
-            return
-        text = (raw or "").strip()
-        if not text:
-            return
-        self.store.write(MemoryItem(
-            content=f"[ringkasan] {text}", tags=["summary"], caused_by=ids,
-            importance=0.7, vec=self.embed(text)))
+        from sadar.core.spectral import connected_clusters, similarity_graph
+        vecs = [self.embed(c) for _, c in batch]
+        for cluster in connected_clusters(similarity_graph(vecs)):
+            if len(cluster) < 2:
+                continue                          # singleton = bukan tema → tak perlu ringkasan
+            ids = [batch[i][0] for i in cluster]
+            body = "\n".join(f"- {batch[i][1]}" for i in cluster)
+            try:
+                raw = backend.complete(
+                    "Kamu meringkas catatan SETEMA menjadi satu paragraf padat & faktual. "
+                    "JANGAN menambah informasi yang tak ada di catatan; jangan mengarang.",
+                    "Ringkas poin-poin setema berikut jadi satu paragraf intisari:\n" + body, tier="sys2")
+            except Exception:  # noqa: BLE001 — kegagalan S2 → lewati tema ini (degradasi jujur)
+                continue
+            text = (raw or "").strip()
+            if text:
+                self.store.write(MemoryItem(
+                    content=f"[ringkasan] {text}", tags=["summary"], caused_by=ids,
+                    importance=0.7, vec=self.embed(text)))
 
     # ---------- model pengguna (2.3): fakta tertambat tentang yang dilayani ----------
     def user_facts(self, limit: int = 6) -> list[MemoryItem]:

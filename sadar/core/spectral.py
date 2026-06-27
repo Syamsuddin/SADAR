@@ -58,3 +58,26 @@ def laplacian(adj: list[list[float]]) -> list[list[float]]:
     for i in range(n):
         lap[i][i] = sum(adj[i])
     return lap
+
+
+def connected_clusters(adj: list[list[float]]) -> list[list[int]]:
+    """Kelompokkan node jadi KOMPONEN terhubung graf — clustering spektral KASAR (jumlah komponen =
+    multiplisitas eigenvalue-0 Laplacian). Tiap komponen = satu 'tema' kohesif. Singleton = tema sendiri."""
+    n = len(adj)
+    seen: set[int] = set()
+    clusters: list[list[int]] = []
+    for start in range(n):
+        if start in seen:
+            continue
+        comp, stack = [], [start]
+        while stack:
+            x = stack.pop()
+            if x in seen:
+                continue
+            seen.add(x)
+            comp.append(x)
+            for y in range(n):
+                if y not in seen and adj[x][y] > 0:
+                    stack.append(y)
+        clusters.append(sorted(comp))
+    return clusters

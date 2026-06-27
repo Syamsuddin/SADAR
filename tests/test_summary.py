@@ -37,16 +37,24 @@ def _ws(*contents):
 
 def test_summary_is_derived_and_traceable(tmp_path):
     mem, store = _mem(tmp_path, every=2)
-    d = _ws("beli kopi besok", "rapat tim jam 9")
+    # dua item SETEMA (berbagi token "rapat tim") → terhubung di graf-kemiripan → satu tema
+    d = _ws("rapat tim selasa bahas anggaran", "rapat tim agenda jadwal anggaran")
     src_ids = {r.id for r in d.workspace.items}
     mem.consolidate(d, SummBackend())
 
     items = [store.read(c) for c in store.list()]
     assert src_ids <= set(store.list())                       # sumber MENTAH tetap ada
     summ = [it for it in items if it and "summary" in it.tags]
-    assert summ, "ringkasan turunan harus dibuat"
-    assert set(summ[0].caused_by) == src_ids                  # tertelusur ke sumber
+    assert summ, "ringkasan turunan harus dibuat untuk tema kohesif"
+    assert set(summ[0].caused_by) == src_ids                  # tertelusur ke anggota tema
     assert "Intisari" in summ[0].content
+
+
+def test_offtopic_items_not_lumped(tmp_path):
+    """Item TAK-setema tak dipaksa-ringkas bersama (clustering spektral cegah penggabungan keliru)."""
+    mem, store = _mem(tmp_path, every=2)
+    mem.consolidate(_ws("beli kopi susu gula", "rapat tim bahas anggaran"), SummBackend())
+    assert not any("summary" in store.read(c).tags for c in store.list())  # dua tema beda → tak dilumpuk
 
 
 def test_consolidate_without_backend_still_works(tmp_path):
