@@ -21,6 +21,8 @@ class StoreConfig(BaseModel):
     allow_remote: bool = False             # store tetap lokal
     root: str = "memory"
     embedder: str = "hashing"              # default murni-Python; "sentence-transformers" untuk produksi
+    index: str = "brute"                   # mesin indeks: "brute" (stdlib, default) | "sqlite-vec" (ANN lokal)
+                                           # md=kebenaran apa pun pilihannya; vec hanya turunan (Bau #4)
 
 
 class LoopConfig(BaseModel):

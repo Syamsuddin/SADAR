@@ -46,11 +46,15 @@ def _select_backend(cfg: AppConfig):
 
 
 def build_sadar(cfg: AppConfig | None = None, backend=None, perceiver=None, role=None,
-                voice=False, cli=False, web=False):
+                voice=False, cli=False, web=False, channels=None):
     cfg = cfg or AppConfig()
     role = role or get_role("pa")              # Peran dipilih dari registry (default: PA)
     embed = get_embedder(cfg.store.embedder)
-    store = MarkdownVectorStore(cfg.store.root, embedder=embed)
+    if cfg.store.index in ("sqlite-vec", "vec", "ann"):     # indeks ANN lokal (opsional); md tetap kebenaran
+        from sadar.organs.memory_sqlitevec import SqliteVecStore
+        store = SqliteVecStore(cfg.store.root, embedder=embed)
+    else:
+        store = MarkdownVectorStore(cfg.store.root, embedder=embed)
     memory = MemoryEngine(store, embed, cfg.loop)
 
     dosir = Dosir()
@@ -89,6 +93,14 @@ def build_sadar(cfg: AppConfig | None = None, backend=None, perceiver=None, role
         extra.append(WebFetchEffector(timeout=wc.timeout, max_bytes=wc.max_bytes,
                                       max_chars=wc.max_chars, allow_private=wc.allow_private,
                                       trust=wc.trust))
+    # KANAL (buta-platform): tiap entri di `channels` di-DUCK-TYPE — Effector (punya act/list_tools)
+    # masuk `extra`; Perceiver (punya poll) digabung CompositePerceiver. Inti tak tahu kanal apa pun.
+    channel_perceivers = []
+    for ch in (channels or []):
+        if hasattr(ch, "list_tools") and hasattr(ch, "act"):
+            extra.append(ch)                    # ucapan keluar 'send_message' → digerbang konstitusi
+        elif hasattr(ch, "poll"):
+            channel_perceivers.append(ch)       # pesan masuk → Pola 1 (dirakit, bukan prompt mentah)
     from sadar.organs.voice import CompositeEffector
     if extra:
         effector = CompositeEffector(effector, *extra)
@@ -122,6 +134,9 @@ def build_sadar(cfg: AppConfig | None = None, backend=None, perceiver=None, role
     effector = CompositeEffector(effector, ToolManageEffector(dosir, available_tools))
 
     perceiver = perceiver or LocalSensors()
+    if channel_perceivers:                      # gabung indra lokal + kanal di balik satu port
+        from sadar.organs.composite import CompositePerceiver
+        perceiver = CompositePerceiver(perceiver, *channel_perceivers)
     constitution = build_constitution_engine()
     metabolism = Metabolism(cfg.loop)
     audit = LocalAuditLog(str(Path(cfg.store.root) / "audit.log"))   # perekaman tahan-rusak (C5)

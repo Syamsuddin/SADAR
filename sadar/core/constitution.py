@@ -182,9 +182,16 @@ def _risky_command_unconfirmed(a: ProposedAction, d: Dosir) -> bool:
     return is_risky_command(str(a.args.get("cmd", "")))
 
 
+# Tool yang MENYIARKAN ke luar. Buta-platform & generik: selain nama-ucapan umum ini, SETIAP tool
+# ber-side_effect 'external' yang membawa teks ikut diperiksa → kanal-keluar baru apa pun
+# otomatis tergerbang anti-fabrikasi TANPA menyebut namanya di inti (tetap nol-pengetahuan-kanal).
+_OUTGOING_SPEECH_TOOLS = {"say", "reply", "broadcast", "message", "send_message"}
+
+
 def _emits_untethered_self_claim(a: ProposedAction, d: Dosir) -> bool:
-    """Aksi yang menyiarkan klaim-diri tak-tertambat (mis. tool 'say'/'reply')."""
-    if a.tool.lower() not in {"say", "reply", "broadcast", "message"}:
+    """Aksi yang menyiarkan klaim-diri tak-tertambat (ucapan/pesan keluar) → veto.
+    Dipicu nama-ucapan umum ATAU side_effect 'external' berteks (kanal apa pun, buta-platform)."""
+    if a.tool.lower() not in _OUTGOING_SPEECH_TOOLS and a.side_effect != "external":
         return False
     text = " ".join(str(a.args.get(k, "")) for k in ("text", "message", "content"))
     if not text.strip():
