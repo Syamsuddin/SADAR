@@ -10,7 +10,8 @@ import math
 from sadar.config import AppConfig
 from sadar.core.mathx import eigh_symmetric
 from sadar.core.ports import MemoryItem
-from sadar.core.spectral import (eigenvector_centrality, fiedler_vector, laplacian, similarity_graph)
+from sadar.core.spectral import (eigenvector_centrality, fiedler_vector, laplacian,
+                                 similarity_graph, spectral_expansion)
 from sadar.main import build_sadar
 from sadar.organs.backend_offline import OfflineBackend
 
@@ -50,6 +51,30 @@ def test_fiedler_bipartitions_two_clusters():
     right = [fv[i] for i in (3, 4, 5)]
     # satu kelompok bertanda berlawanan dgn kelompok lain (pembelahan spektral)
     assert (max(left) < min(right)) or (max(right) < min(left))
+
+
+def _complete(n):
+    return [[0.0 if i == j else 1.0 for j in range(n)] for i in range(n)]
+
+
+def test_spectral_expansion_two_sided_expander_quality():
+    # NON-bipartit & makin rapat → ekspansi makin tinggi (K5 > K3 > 0)
+    assert spectral_expansion(_complete(5)) > spectral_expansion(_complete(3)) > 0.0
+    # BIPARTIT (path & star) → 0: bukan ekspander, random-walk berosilasi (faithful Ramanujan dua-sisi)
+    n = 5
+    path = [[0.0] * n for _ in range(n)]
+    for i in range(n - 1):
+        path[i][i + 1] = path[i + 1][i] = 1.0
+    star = [[0.0] * 4 for _ in range(4)]
+    for leaf in (1, 2, 3):
+        star[0][leaf] = star[leaf][0] = 1.0
+    assert spectral_expansion(path) == 0.0
+    assert spectral_expansion(star) == 0.0
+    # TERPUTUS & tanpa-edge → 0 (silo)
+    disc = [[0.0, 1.0, 0.0, 0.0], [1.0, 0.0, 0.0, 0.0],
+            [0.0, 0.0, 0.0, 1.0], [0.0, 0.0, 1.0, 0.0]]
+    assert spectral_expansion(disc) == 0.0
+    assert spectral_expansion([[0.0, 0.0], [0.0, 0.0]]) == 0.0
 
 
 def test_similarity_graph_thresholds():

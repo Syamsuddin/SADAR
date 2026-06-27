@@ -195,6 +195,7 @@ class Engine:
         d.grounding_integrity = sm.grounding_integrity
         d.integration = sm.integration
         d.algebraic_connectivity = sm.algebraic_connectivity
+        d.spectral_expansion = sm.spectral_expansion
         d.confidence = sm.confidence
         # 5. CONSTITUTION refleks (otonom)
         self.constitution.enforce_reflex(d)

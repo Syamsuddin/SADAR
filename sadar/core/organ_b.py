@@ -31,6 +31,7 @@ class SelfModel:
     grounding_integrity: float
     integration: float          # v2: konektivitas semantik (tiap isi terhubung ke keseluruhan)
     algebraic_connectivity: float   # v3: spektral (λ₂ Laplacian graf caused_by) — integrasi struktural
+    spectral_expansion: float       # v3: kualitas ekspander (gap spektral) — mixing/bebas-silo
     confidence: float
 
 
@@ -95,14 +96,9 @@ def _integration(vecs: list[list[float]]) -> float:
     return sum(per) / len(per)
 
 
-def _algebraic_connectivity(items: list[Representation]) -> float:
-    """v3 — SPEKTRAL: nilai Fiedler λ₂ (eigenvalue terkecil ke-2) Laplacian graf caused_by, dinormalkan.
-    λ₂>0 ⟺ graf terhubung; makin besar = makin terintegrasi (sambungan tak mudah terputus). Berbasis
-    STRUKTUR (bukan embedding) → bebas-embedder. Penghalusan fragmentation (konektivitas biner → spektral).
-    Normalisasi λ₂/n ∈ [0,1] (1.0 utk graf lengkap; 0.0 utk terputus). 1.0 bila <2 isi."""
+def _caused_by_adjacency(items: list[Representation]) -> list[list[float]]:
+    """Adjacency tak-berarah biner dari edge caused_by INTRA-workspace. Substrat metrik spektral."""
     n = len(items)
-    if n < 2:
-        return 1.0
     idx = {r.id: i for i, r in enumerate(items)}
     adj = [[0.0] * n for _ in range(n)]
     for r in items:
@@ -110,12 +106,30 @@ def _algebraic_connectivity(items: list[Representation]) -> float:
             if c in idx and idx[c] != idx[r.id]:
                 i, j = idx[r.id], idx[c]
                 adj[i][j] = adj[j][i] = 1.0
-    lap = [[-adj[i][j] for j in range(n)] for i in range(n)]      # Laplacian L = D - A
-    for i in range(n):
-        lap[i][i] = sum(adj[i])
-    eig = eigenvalues_symmetric(lap)
+    return adj
+
+
+def _algebraic_connectivity(items: list[Representation]) -> float:
+    """v3 — SPEKTRAL: nilai Fiedler λ₂ (eigenvalue terkecil ke-2) Laplacian graf caused_by, dinormalkan.
+    λ₂>0 ⟺ graf terhubung; makin besar = makin terintegrasi. Berbasis STRUKTUR → bebas-embedder.
+    Normalisasi λ₂/n ∈ [0,1] (1.0 utk graf lengkap; 0.0 utk terputus). 1.0 bila <2 isi."""
+    n = len(items)
+    if n < 2:
+        return 1.0
+    from sadar.core.spectral import laplacian
+    eig = eigenvalues_symmetric(laplacian(_caused_by_adjacency(items)))
     lam2 = eig[1] if len(eig) >= 2 else 0.0
     return max(0.0, min(1.0, lam2 / n))
+
+
+def _spectral_expansion(items: list[Representation]) -> float:
+    """v3 — EKSPANDER: gap spektral ternormalkan graf caused_by (lihat spectral.spectral_expansion).
+    Tinggi = pikiran terhubung-rapat & bebas-silo (ekspander); 0 = terpecah/bipartit. Ramanujan = optimal."""
+    n = len(items)
+    if n < 2:
+        return 1.0
+    from sadar.core.spectral import spectral_expansion
+    return spectral_expansion(_caused_by_adjacency(items))
 
 
 def appraise(workspace_items: list[Representation]) -> SelfModel:
@@ -127,6 +141,8 @@ def appraise(workspace_items: list[Representation]) -> SelfModel:
     grd = round(_grounding(live), 3)
     integ = round(_integration(vecs), 3)
     algc = round(_algebraic_connectivity(live), 3)
+    expn = round(_spectral_expansion(live), 3)
     conf = round((coh + grd + (1.0 - frag) + integ) / 4.0, 3)   # v2: integrasi ikut menimbang
     return SelfModel(coherence=coh, fragmentation=frag, grounding_integrity=grd,
-                     integration=integ, algebraic_connectivity=algc, confidence=conf)
+                     integration=integ, algebraic_connectivity=algc, spectral_expansion=expn,
+                     confidence=conf)

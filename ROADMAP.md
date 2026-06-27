@@ -82,9 +82,10 @@ Sudah **SELESAI** sejak roadmap disusun (suite: **162 passed, 1 skipped**; mirro
 - ✅ **Celah blueprint ditutup** — `enforce_reflex` homeostatik (integritas turun saat degraded, pulih saat sehat) ·
   `anti_sycophancy` diperluas (pola ID+EN, dua arah) · uji adversarial **Pola 1** (input mentah tak pernah jadi
   prompt LLM) · docstring Organ B v1→v2. *(tes: `test_pola1.py`, + `test_safety`/`test_constitution`)*
-- ✅ **Pasca-roadmap — Organ B v3 (spektral)** — `algebraic_connectivity` = λ₂ Laplacian graf caused_by
-  (eigensolver Jacobi murni-Python di `core/mathx.py`, core tetap bebas-numpy); masuk snapshot & ditambat
-  Organ C. Triad riset SIG/PSI/TIF §8.1 tetap terbuka (tak terdefinisi → tak dikarang). *(tes: `test_organ_b.py`)*
+- ✅ **Pasca-roadmap — Organ B v3 (spektral)** — `algebraic_connectivity` (λ₂ Laplacian) + `spectral_expansion`
+  (gap spektral ternormalkan = kualitas EKSPANDER; graf Ramanujan optimal; bipartit/terputus → 0). Keduanya
+  atas graf caused_by, eigensolver Jacobi murni-Python (`core/mathx.eigh_symmetric`), core bebas-numpy;
+  masuk snapshot & ditambat Organ C. Triad riset SIG/PSI/TIF §8.1 tetap terbuka (tak dikarang). *(tes: `test_organ_b.py`, `test_spectral.py`)*
 - ✅ **Pasca-roadmap — Teori graf SPEKTRAL untuk SADAR** (teknik standar, bukan teori riset): `core/spectral.py`
   (eigenvector centrality, vektor Fiedler/bipartisi, similarity-graph) di atas `core/mathx.eigh_symmetric`
   (eigenvalue+eigenvektor, Jacobi murni-Python). Dipakai **re-rank recall**: kandidat SENTRAL (hub

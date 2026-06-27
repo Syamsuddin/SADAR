@@ -9,7 +9,7 @@ edge caused_by/kemiripan-vektor). Murni Python (pakai mathx; core tetap bebas-nu
 """
 from __future__ import annotations
 
-from sadar.core.mathx import cosine, eigh_symmetric
+from sadar.core.mathx import cosine, eigenvalues_symmetric, eigh_symmetric
 
 
 def similarity_graph(vecs: list[list[float]], threshold: float = 0.3) -> list[list[float]]:
@@ -58,6 +58,25 @@ def laplacian(adj: list[list[float]]) -> list[list[float]]:
     for i in range(n):
         lap[i][i] = sum(adj[i])
     return lap
+
+
+def spectral_expansion(adj: list[list[float]], tol: float = 1e-9) -> float:
+    """Kualitas EKSPANDER = gap spektral ternormalkan 1 − λ/λ₁, dengan λ₁ = eigenvalue adjacency
+    TERBESAR (jari-jari spektral) & λ = eigenvalue terbesar-ke-2 dalam MAGNITUDO. ∈ [0,1].
+    Tinggi = ekspander baik (mixing cepat, diameter pendek, BEBAS SILO); 0 = terputus / bipartit
+    (bukan ekspander — random-walk berosilasi/terjebak). Graf RAMANUJAN memaksimalkannya
+    (batas optimal λ ≤ 2√(d−1)). MURNI KODE, berbasis struktur (bebas-embedder)."""
+    n = len(adj)
+    if n < 2:
+        return 1.0
+    if all(adj[i][j] == 0 for i in range(n) for j in range(n)):
+        return 0.0                                # tak ada edge → bukan ekspander
+    vals = eigenvalues_symmetric(adj)             # menaik
+    lam1 = vals[-1]                               # Perron: terbesar = jari-jari spektral
+    if lam1 <= tol:
+        return 0.0
+    lam = max(abs(v) for v in vals[:-1])          # eigenvalue ke-2 (magnitudo) → governs mixing
+    return round(max(0.0, min(1.0, 1.0 - lam / lam1)), 3)
 
 
 def connected_clusters(adj: list[list[float]]) -> list[list[int]]:
