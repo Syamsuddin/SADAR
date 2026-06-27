@@ -63,6 +63,7 @@ def build_sadar(cfg: AppConfig | None = None, backend=None, perceiver=None, role
     dosir.wake_words = list(role.wake_words)    # …dan nama-panggilan + sapaan refleks (deterministik)
     dosir.self_greeting = role.greeting
     dosir.persona = role.persona                # …dan nada bicara (gaya; tak menyentuh konstitusi)
+    dosir.risk_policy = role.risk_policy        # …dan kebijakan risiko per-Peran (3.3; hanya memperketat)
 
     if backend is None:
         backend = _select_backend(cfg)

@@ -22,19 +22,31 @@ class UserModelEffector:
         return [
             ToolSpec(name="user_remember", reversible=True, side_effect="write",
                      required_caps=["user_model.write"],
-                     usage='args {"key":"preferensi/proyek/fakta", "value":"isi yang DIAMATI dari pengguna"}'),
+                     usage='args {"key":"preferensi/proyek/fakta", "value":"isi yang DIAMATI dari pengguna", '
+                           '"who":"<opsional: id/nama pengguna utk multi-user>"}'),
             ToolSpec(name="user_recall", reversible=True, side_effect="read",
-                     required_caps=["user_model.read"], usage='args {} — apa yang diketahui tentang pengguna'),
+                     required_caps=["user_model.read"],
+                     usage='args {"who":"<opsional: batasi ke satu pengguna>"} — apa yang diketahui tentang pengguna'),
         ]
 
     def act(self, tool: str, args: dict) -> ActionResult:
         cb = args.get("_caused_by", []) or []
+        who = str(args.get("who", "")).strip()        # multi-user (4.3): scope per-pengguna; "" = global
+        scope_tag = f"user:{who}" if who else None
+
         if tool == "user_recall":
-            facts = [it for cid in self.store.list()
-                     if (it := self.store.read(cid)) and "user_model" in it.tags]
+            facts = []
+            for cid in self.store.list():
+                it = self.store.read(cid)
+                if not it or "user_model" not in it.tags:
+                    continue
+                if scope_tag and scope_tag not in it.tags:   # batasi ke pengguna 'who' bila diminta
+                    continue
+                facts.append(it)
             facts.sort(key=lambda i: i.created, reverse=True)
             txt = "; ".join(f.content for f in facts) or "(belum ada yang diketahui)"
-            return ActionResult(tool=tool, ok=True, output="tentang pengguna: " + txt, caused_by=cb)
+            label = f"tentang pengguna {who}: " if who else "tentang pengguna: "
+            return ActionResult(tool=tool, ok=True, output=label + txt, caused_by=cb)
 
         if tool == "user_remember":
             key = str(args.get("key", "")).strip()
@@ -45,8 +57,9 @@ class UserModelEffector:
             if not cb:
                 return ActionResult(tool=tool, ok=False, caused_by=cb,
                                     output="ditolak: atribut pengguna tanpa observasi sumber (tak boleh ditebak)")
-            content = f"{key}: {value}"
-            self.store.write(MemoryItem(content=content, tags=["user_model", key],
+            content = f"[{who}] {key}: {value}" if who else f"{key}: {value}"
+            tags = ["user_model", key] + ([scope_tag] if scope_tag else [])
+            self.store.write(MemoryItem(content=content, tags=tags,
                                         caused_by=list(cb), importance=0.7, vec=self.embed(content)))
             return ActionResult(tool=tool, ok=True, output=f"dicatat tentang pengguna — {content}", caused_by=cb)
 

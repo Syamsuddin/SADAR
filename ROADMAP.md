@@ -72,14 +72,21 @@ Sudah **SELESAI** sejak roadmap disusun (suite: **162 passed, 1 skipped**; mirro
   jaringan, batas memori/CPU/pids, hanya workdir ter-mount); defense-in-depth di atas gerbang risiko. *(tes: `test_sandbox.py`)*
 - ✅ **4.2 Organ B v2** — metrik **integrasi** (konektivitas semantik: hukum 'pulau') masuk snapshot &
   ditambat Organ C; confidence v2 (4 komponen). *(tes: `test_organ_b.py`, `test_introspection.py`)*
-- ✅ **4.3 config doctor** — `sadar/doctor.py` + `scripts/doctor.py`: audit postur risiko (akses-penuh,
-  SSRF, store remote, caps berdampak). Pairing pengirim-tak-dikenal sudah ada (Telegram). *(tes: `test_doctor.py`)*
+- ✅ **4.3 multi-user + pairing + config doctor** — pairing default-deny, **owner vs guest** berlevel,
+  identitas pengirim di persepsi, **routing balasan ke pengirim**, user_model per-pengguna (`who`),
+  + `sadar/doctor.py`/`scripts/doctor.py` audit risiko. *(tes: `test_channel.py`, `test_user_model.py`, `test_doctor.py`)*
 - ✅ **4.4 kalibrasi** — regresi default menjaga loop hidup (tak macet/over-deliberasi/kuras energi). *(tes: `test_calibration.py`)*
 
-**Belum:** 3.3 kebijakan pluggable per-Peran · 4.3 multi-user penuh (beberapa pengguna lewat kanal).
+- ✅ **3.3 kebijakan keselamatan pluggable per-Peran** — `RiskPolicy` (confirm_tools/side_effects/deny)
+  dikonsultasi gerbang SETELAH HardLimit → hanya MEMPERKETAT, mustahil melonggarkan batas keras. *(tes: `test_policy.py`)*
+- ✅ **Celah blueprint ditutup** — `enforce_reflex` homeostatik (integritas turun saat degraded, pulih saat sehat) ·
+  `anti_sycophancy` diperluas (pola ID+EN, dua arah) · uji adversarial **Pola 1** (input mentah tak pernah jadi
+  prompt LLM) · docstring Organ B v1→v2. *(tes: `test_pola1.py`, + `test_safety`/`test_constitution`)*
 
-> **SLICE 2 = SELESAI** (2.1+2.2+2.3) ✅ · **SLICE 4 ~ SELESAI** (4.1+4.2+4.3+4.4; sisa: multi-user penuh) ✅
-> — mirror test tetap LULUS, firewall & anti-fabrikasi hijau (suite: **183 passed, 2 skipped**).
+**Belum:** — (semua item roadmap Slice 2–4 SELESAI).
+
+> **SLICE 2, 3, 4 = SELESAI PENUH** ✅ — mirror test tetap LULUS, firewall & anti-fabrikasi hijau,
+> tak ada stub/placeholder tersisa dari blueprint (suite: **193 passed, 2 skipped**).
 
 ---
 
@@ -93,8 +100,8 @@ Sudah **SELESAI** sejak roadmap disusun (suite: **162 passed, 1 skipped**; mirro
 | ✅ **Jangkauan multi-kanal** (Telegram) | OpenClaw (20+ kanal) | `organs/channel_telegram.py` + `composite.py` | **P1 — SELESAI** |
 | ✅ **Keluasan model** (Ollama + selektor) | Hermes (300+), OpenHands (LiteLLM/ACP) | `organs/backend_ollama.py` + `config.brain.backend` | **P1 — SELESAI** |
 | ✅ **Sandbox eksekusi** (isolasi runtime) | OpenHands (Docker) | `organs/effector_shell.py` (sandbox) | **P2 — SELESAI** |
-| **Kebijakan keselamatan pluggable** per-Peran | OpenHands (Analyzer/Policy) | `core/constitution.py` (antarmuka) | **P2** |
-| 🟡 **Multi-user / pairing** | OpenClaw (DM pairing) | adapter kanal + Peran | **P2 — pairing ✅, multi-user belum** |
+| ✅ **Kebijakan keselamatan pluggable** per-Peran | OpenHands (Analyzer/Policy) | `core/dosir.py` (RiskPolicy) + `constitution.py` | **P2 — SELESAI** |
+| ✅ **Multi-user / pairing** | OpenClaw (DM pairing) | `organs/channel_telegram.py` (owner/guest, routing) | **P2 — SELESAI** |
 | ✅ **Organ B v2** (metrik integrasi) | (utang teknis sendiri) | `core/organ_b.py` | **P2 — SELESAI** |
 | ✅ **Kalibrasi angka** `[TERBUKA]` | (utang teknis sendiri) | `tests/test_calibration.py` | **P3 — SELESAI** |
 
@@ -159,7 +166,7 @@ Penamaan melanjutkan "Slice 1". Tiap fitur ditulis sebagai mini-spec:
 
 ---
 
-### 🌍 SLICE 3 — "Menjangkau dunia"  `(P1)` — 🟡 sebagian (3.1, 3.2 ✅)
+### 🌍 SLICE 3 — "Menjangkau dunia"  `(P1)` — ✅ SELESAI (3.1, 3.2, 3.3)
 > Menutup celah jangkauan (OpenClaw) & keluasan model (Hermes/OpenHands). **Bukti emas tesis buta-platform:**
 > hampir semuanya **nol-perubahan `core/`**.
 
@@ -186,7 +193,7 @@ Penamaan melanjutkan "Slice 1". Tiap fitur ditulis sebagai mini-spec:
   - `test_swapping_backend_keeps_constitution` — konstitusi & Organ C identik lintas-backend.
   - `test_remote_backend_spec_lowers_trust` — backend remote → caution naik → toleransi tether ketat.
 
-#### 3.3 Kebijakan keselamatan pluggable per-Peran  ⟵ OpenHands (SecurityAnalyzer/ConfirmationPolicy)
+#### 3.3 Kebijakan keselamatan pluggable per-Peran  ⟵ OpenHands (SecurityAnalyzer/ConfirmationPolicy)  ✅ SELESAI
 - **Apa/Mengapa:** Peran berbeda → kebijakan HITL/ambang risiko berbeda, **tanpa** menyentuh inti. SADAR sudah
   90% ke sana (`ConstitutionEngine`); tinggal diekspos rapi.
 - **Di mana:** antarmuka `RiskPolicy`/`ConfirmationPolicy` di `core/constitution.py`; Peran memilih profil.
@@ -201,7 +208,7 @@ Penamaan melanjutkan "Slice 1". Tiap fitur ditulis sebagai mini-spec:
 
 ---
 
-### 🛡️ SLICE 4 — "Pengerasan & kedalaman"  `(P2–P3)` — ✅ ~SELESAI (4.1+4.2+4.3+4.4; sisa: multi-user penuh)
+### 🛡️ SLICE 4 — "Pengerasan & kedalaman"  `(P2–P3)` — ✅ SELESAI (4.1, 4.2, 4.3, 4.4)
 > Memantapkan keselamatan-eksekusi & ketelitian self-model; melunasi utang teknis sendiri.
 
 #### 4.1 Runtime sandbox (pengerasan eksekusi)  ⟵ OpenHands (Docker)  ✅ SELESAI
@@ -219,7 +226,7 @@ Penamaan melanjutkan "Slice 1". Tiap fitur ditulis sebagai mini-spec:
   jujur (v2, bukan klaim fenomenal).
 - **Tes:** `test_organ_b_v2_dims_are_tetherable`, perluas `test_introspection`.
 
-#### 4.3 Multi-user + pairing + config doctor  ⟵ OpenClaw  🟡 SEBAGIAN (pairing + config doctor ✅; multi-user penuh belum)
+#### 4.3 Multi-user + pairing + config doctor  ⟵ OpenClaw  ✅ SELESAI
 - **Apa/Mengapa:** beberapa pengguna lewat kanal; pairing untuk pengirim tak dikenal; audit konfigurasi berisiko.
 - **Di mana:** lapisan di adapter kanal (bukan `core/`); util `sadar doctor`.
 - **Penjaga Aturan Kardinal:** identitas/izin per-user **di KODE** (bukan `SOUL.md`-soft ala OpenClaw); pesan
@@ -256,9 +263,9 @@ R └─────────────────────────
 
 **Urutan rekomendasi:** Slice 2 (2.2 → 2.1 → 2.3) → Slice 3 (3.2 → 3.1 → 3.3) → Slice 4 (4.1 → 4.2 → 4.3 → 4.4).
 
-> **Progres:** ✅ **SLICE 2** (2.1–2.3) · ✅ **SLICE 4** (4.1, 4.2, 4.3, 4.4) · **3.1, 3.2** ✅
-> (+ bonus: tool-draft, tool-manage, web_fetch, sqlite-vec). **Sisa:** 3.3 kebijakan pluggable per-Peran ·
-> 4.3 multi-user penuh. **Fokus berikutnya:** 3.3 → multi-user.
+> **Progres:** ✅ **SLICE 2, 3, 4 SELESAI PENUH** (semua item) + bonus (tool-draft, tool-manage,
+> web_fetch, sqlite-vec) + semua celah blueprint ditutup. **Roadmap habis** — pengembangan
+> berikutnya bersifat baru di luar dokumen ini (mis. metrik spektral penuh Organ B §8.1).
 
 ---
 

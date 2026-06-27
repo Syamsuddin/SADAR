@@ -59,3 +59,17 @@ def test_user_facts_injected_into_context(tmp_path):
     eng.effector.act("user_remember", {"key": "zona", "value": "WITA", "_caused_by": ["obs1"]})
     ctx = eng._build_context(eng.d)
     assert "Tentang pengguna" in ctx and "zona: WITA" in ctx
+
+
+def test_per_user_scoping_isolates_facts(tmp_path):
+    """Multi-user (4.3): fakta di-scope per 'who' → recall satu pengguna tak bocor ke yang lain."""
+    eff, _, _ = _eff(tmp_path)
+    eff.act("user_remember", {"key": "kota", "value": "Makassar", "who": "andi", "_caused_by": ["p1"]})
+    eff.act("user_remember", {"key": "kota", "value": "Bandung", "who": "budi", "_caused_by": ["p2"]})
+    andi = eff.act("user_recall", {"who": "andi"}).output
+    budi = eff.act("user_recall", {"who": "budi"}).output
+    assert "Makassar" in andi and "Bandung" not in andi
+    assert "Bandung" in budi and "Makassar" not in budi
+    # recall global (tanpa who) → memuat keduanya
+    allf = eff.act("user_recall", {}).output
+    assert "Makassar" in allf and "Bandung" in allf

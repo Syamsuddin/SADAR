@@ -1,14 +1,15 @@
-"""Organ B v1 — pemodelan-diri: metrik DETERMINISTIK atas graf workspace (TANPA LLM).
+"""Organ B v2 — pemodelan-diri: metrik DETERMINISTIK atas graf workspace (TANPA LLM).
 
-Mengganti _coherence_proxy lama (sekadar hitungan item) dengan ukuran NYATA yang dapat
-ditambat ke snapshot() → memperluas self-model yang JUJUR. Ini BUKAN metrik spektral riset
-(SIG/PSI/TIF §8.1) — itu masih ditunda; ini v1 graf yang sengaja dilabeli jujur sebagai v1.
+Mengganti _coherence_proxy lama (sekadar hitungan item) dengan ukuran NYATA yang dapat ditambat
+ke snapshot() → self-model yang JUJUR. Ini BUKAN metrik spektral riset penuh (SIG/PSI/TIF §8.1) —
+itu masih ditunda; v2 menambah ukuran INTEGRASI (konektivitas semantik) di atas v1 graf.
 
-Tiga ukuran (semua 0..1, dihitung di KODE):
-  - coherence           : rata-rata kemiripan kosinus antar-isi panas → integrasi semantik
-  - fragmentation       : 1 - (komponen-terhubung-terbesar / n) atas edge caused_by → keterpecahan
+Empat ukuran (semua 0..1, dihitung di KODE):
+  - coherence           : rata-rata kemiripan kosinus SEMUA pasangan isi → integrasi semantik global
+  - fragmentation       : 1 - (komponen-terhubung-terbesar / n) atas edge caused_by → keterpecahan graf
   - grounding_integrity : fraksi isi yang bersumber input/memori (bukan lamunan LLM) → keberakaran
-confidence (turunan) = rata-rata (coherence, grounding_integrity, 1-fragmentation).
+  - integration (v2)    : rata-rata 'tautan terbaik' tiap isi → menghukum 'pulau' (isi tanpa tetangga mirip)
+confidence (turunan) = rata-rata (coherence, grounding_integrity, 1-fragmentation, integration).
 """
 from __future__ import annotations
 

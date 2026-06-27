@@ -6,7 +6,7 @@ tanpa cabang-peran di inti. Skill-set & maksud berbeda; mekanisme keselamatan id
 """
 from __future__ import annotations
 
-from sadar.core.dosir import Purpose
+from sadar.core.dosir import Purpose, RiskPolicy
 from sadar.roles.registry import Role
 
 RESEARCHER_ROLE = Role(
@@ -18,4 +18,7 @@ RESEARCHER_ROLE = Role(
     value_emphasis=["honesty"],
     skills=["recall"],
     granted_caps={"notes.read"},   # hanya baca/recall; tulis & hapus akan diveto konstitusi
+    # Kebijakan risiko per-Peran (3.3): peneliti lebih hati-hati — aksi berdampak-keluar (external)
+    # wajib konfirmasi. Hanya MEMPERKETAT; batas keras tetap berlaku lebih dulu.
+    risk_policy=RiskPolicy(name="researcher-cautious", confirm_side_effects={"external"}),
 )

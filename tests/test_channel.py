@@ -50,7 +50,8 @@ def test_owner_message_becomes_perception_pola1():
     reps = p.poll()
     assert len(reps) == 1
     assert reps[0].source == "perception"
-    assert reps[0].content == "pesan pengguna: ingatkan rapat jam 3"   # Pola 1: dirakit, diberi label
+    assert reps[0].content.startswith("pesan pengguna: ingatkan rapat jam 3")  # prefiks kontrak dipertahankan
+    assert "[dari owner:111]" in reps[0].content    # identitas pengirim (multi-user 4.3)
     assert reps[0].trust < 1.0                     # kanal remote → trust<1 (Organ C lebih hati-hati)
 
 
@@ -59,10 +60,11 @@ def test_pairing_code_pairs_then_processes():
     p = TelegramPerceiver(t, owner_ids=[], pairing_code="buka-pintu-123")
     first = p.poll()
     assert first and first[0].source == "thought" and "PAIRING" in first[0].content
-    assert STRANGER in p.paired                    # kini terpasang (di KODE)
+    assert STRANGER in p.paired and p.level(STRANGER) == "guest"    # kini terpasang sbg guest (di KODE)
     t.inbound = [(STRANGER, "halo")]
     second = p.poll()
-    assert second and second[0].content == "pesan pengguna: halo"   # pesan berikut diproses
+    assert second and second[0].content.startswith("pesan pengguna: halo")
+    assert "[dari guest:999]" in second[0].content                  # diproses dgn identitas guest
 
 
 # ---- ucapan keluar TETAP digerbang anti-fabrikasi ----
@@ -132,3 +134,40 @@ def test_make_telegram_channel_pairs_perceiver_and_effector():
     p, e = make_telegram_channel("FAKE-TOKEN", owner_ids=[OWNER])
     assert isinstance(p, TelegramPerceiver) and isinstance(e, TelegramEffector)
     assert e.default_chat_id == OWNER and OWNER in p.paired   # pemilik jadi tujuan default & ter-pairing
+
+
+# ---- MULTI-USER (4.3): level, routing balasan, nonaktif-guest ----
+def test_levels_owner_vs_guest():
+    p = TelegramPerceiver(FakeTransport(), owner_ids=[OWNER], pairing_code="kode")
+    assert p.level(OWNER) == "owner"
+    assert p.level(STRANGER) is None                 # belum dikenal
+    p.transport.inbound = [(STRANGER, "kode")]
+    p.poll()                                          # pairing → guest
+    assert p.level(STRANGER) == "guest" and p.level(OWNER) == "owner"
+
+
+def test_reply_routes_to_last_sender():
+    GUEST = 222
+    t = FakeTransport()
+    state = {"reply_to": OWNER}                       # state bersama perceiver↔effector (seperti make_*)
+    p = TelegramPerceiver(t, owner_ids=[OWNER], pairing_code="kode", reply_state=state)
+    e = TelegramEffector(t, default_chat_id=OWNER, reply_state=state)
+    # owner bicara → balasan default ke owner
+    t.inbound = [(OWNER, "halo")]; p.poll()
+    e.act("send_message", {"text": "hai owner", "_caused_by": ["x"]})
+    assert t.sent[-1] == (OWNER, "hai owner")
+    # guest pairing lalu bicara → balasan default kini ke guest (bukan owner)
+    t.inbound = [(GUEST, "kode")]; p.poll()
+    t.inbound = [(GUEST, "tanya sesuatu")]; p.poll()
+    e.act("send_message", {"text": "hai guest", "_caused_by": ["y"]})
+    assert t.sent[-1] == (GUEST, "hai guest")
+    # chat_id eksplisit tetap menang (balas ke owner walau pengirim terakhir guest)
+    e.act("send_message", {"text": "ke owner", "chat_id": OWNER, "_caused_by": ["z"]})
+    assert t.sent[-1] == (OWNER, "ke owner")
+
+
+def test_guests_can_be_disabled():
+    t = FakeTransport([(STRANGER, "kode")])
+    p = TelegramPerceiver(t, owner_ids=[OWNER], pairing_code="kode", allow_guests=False)
+    assert p.poll() == []                             # guest dimatikan → kode pairing diabaikan
+    assert p.level(STRANGER) is None

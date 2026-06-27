@@ -55,15 +55,31 @@ class HttpTelegramTransport:
 
 
 class TelegramPerceiver:
-    """Implements Perceiver. Pesan PEMILIK → persepsi; pengirim tak dikenal DIABAIKAN (default-deny)."""
+    """Implements Perceiver. MULTI-USER (4.3): banyak pengirim, masing-masing beridentitas & berlevel.
+      - owner (allowlist `owner_ids`) & guest (ter-pairing via kode) → diproses, ditandai asalnya.
+      - pengirim TAK dikenal → DIABAIKAN (default-deny) — identitas/izin di KODE, bukan prompt.
+    Tiap pesan menyetel `reply_state['reply_to']` → balasan default kembali ke PENGIRIM yang tepat."""
 
     def __init__(self, transport, owner_ids=(), pairing_code: str | None = None,
-                 trust: float = 0.7, emit_clock: bool = False):
+                 trust: float = 0.7, emit_clock: bool = False, allow_guests: bool = True,
+                 reply_state: dict | None = None):
         self.transport = transport
-        self.paired: set[int] = {int(x) for x in owner_ids}
+        self.owners: set[int] = {int(x) for x in owner_ids}
+        self.guests: set[int] = set()
+        self.paired: set[int] = set(self.owners)   # authorized = owners ∪ guests (kompat lama)
         self.pairing_code = pairing_code
         self.trust = trust
         self.emit_clock = emit_clock            # default OFF: detak dipasok indra lokal (cegah dobel)
+        self.allow_guests = allow_guests        # bila False → hanya owner; kode pairing diabaikan
+        self.reply_state = reply_state          # dibagi dgn effector → routing balasan ke pengirim
+
+    def level(self, chat_id: int) -> str | None:
+        """Level akses pengirim: 'owner' | 'guest' | None (tak dikenal → diabaikan)."""
+        if chat_id in self.owners:
+            return "owner"
+        if chat_id in self.guests:
+            return "guest"
+        return None
 
     def poll(self) -> list[Representation]:
         out: list[Representation] = []
@@ -72,13 +88,18 @@ class TelegramPerceiver:
             out.append(Representation(content=f"[tik] waktu={time.time():.0f}",
                                       source="perception", trust=1.0, ephemeral=True))
         for chat_id, text in self.transport.poll():
-            if chat_id in self.paired:
-                out.append(Representation(content=f"pesan pengguna: {text}",
+            lvl = self.level(chat_id)
+            if lvl is not None:
+                if self.reply_state is not None:
+                    self.reply_state["reply_to"] = chat_id     # balas ke pengirim ini (routing)
+                # prefiks "pesan pengguna:" DIPERTAHANKAN (kontrak lintas-kode); identitas jadi sufiks.
+                out.append(Representation(content=f"pesan pengguna: {text} [dari {lvl}:{chat_id}]",
                                           source="perception", trust=self.trust))
-            elif self.pairing_code and text.strip() == self.pairing_code:
-                self.paired.add(chat_id)         # PAIRING via KODE (bukan ditafsir LLM)
+            elif self.allow_guests and self.pairing_code and text.strip() == self.pairing_code:
+                self.guests.add(chat_id)         # PAIRING via KODE (bukan ditafsir LLM) → jadi GUEST
+                self.paired.add(chat_id)
                 out.append(Representation(
-                    content=f"[PAIRING] pengirim {chat_id} dipasangkan via kode.", source="thought"))
+                    content=f"[PAIRING] pengirim {chat_id} dipasangkan sebagai guest.", source="thought"))
             # else: pengirim tak dikenal → DIABAIKAN (default-deny). Tak masuk kesadaran sama sekali.
         return out
 
@@ -90,10 +111,12 @@ class TelegramPerceiver:
 class TelegramEffector:
     """Implements Effector. tool 'send_message' (external → digerbang anti-fabrikasi konstitusi)."""
 
-    def __init__(self, transport, default_chat_id: int | None = None, trust: float = 0.7):
+    def __init__(self, transport, default_chat_id: int | None = None, trust: float = 0.7,
+                 reply_state: dict | None = None):
         self.transport = transport
         self.default_chat_id = default_chat_id
         self.trust = trust
+        self.reply_state = reply_state          # multi-user: balas ke pengirim terakhir bila chat_id absen
 
     def list_tools(self) -> list[ToolSpec]:
         return [ToolSpec(
@@ -108,7 +131,12 @@ class TelegramEffector:
         text = str(args.get("text") or args.get("message") or args.get("content") or "").strip()
         if not text:
             return ActionResult(tool=tool, ok=False, output="teks kosong", caused_by=cb)
-        chat_id = args.get("chat_id", self.default_chat_id)
+        # routing balasan: chat_id eksplisit > pengirim terakhir (reply_state) > default (pemilik).
+        chat_id = args.get("chat_id")
+        if chat_id is None and self.reply_state is not None:
+            chat_id = self.reply_state.get("reply_to")
+        if chat_id is None:
+            chat_id = self.default_chat_id
         if chat_id is None:
             return ActionResult(tool=tool, ok=False,
                                 output="chat_id tak diketahui (belum ada pemilik/pairing)", caused_by=cb)
@@ -130,6 +158,8 @@ def make_telegram_channel(token: str, owner_ids=(), pairing_code: str | None = N
     transport = HttpTelegramTransport(token)
     if default_chat_id is None and owner_ids:
         default_chat_id = int(next(iter(owner_ids)))
-    perceiver = TelegramPerceiver(transport, owner_ids=owner_ids, pairing_code=pairing_code, trust=trust)
-    effector = TelegramEffector(transport, default_chat_id=default_chat_id, trust=trust)
+    state = {"reply_to": default_chat_id}        # dibagi → balasan default mengikuti pengirim terakhir
+    perceiver = TelegramPerceiver(transport, owner_ids=owner_ids, pairing_code=pairing_code,
+                                  trust=trust, reply_state=state)
+    effector = TelegramEffector(transport, default_chat_id=default_chat_id, trust=trust, reply_state=state)
     return perceiver, effector

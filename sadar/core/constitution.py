@@ -73,9 +73,20 @@ class ConstitutionGate:
         self.c = constitution
 
     def vet(self, action: ProposedAction, d: Dosir) -> Verdict:
+        # 1) BATAS KERAS dulu — non-negosiabel. Bila salah satu memveto, kebijakan peran TAK
+        #    pernah dikonsultasi → mustahil melonggarkan HardLimit (3.3: hanya boleh memperketat).
         for limit in self.c.hard_limits:
             if limit.violates(action, d):
                 return Verdict.veto(limit.id)
+        # 2) KEBIJAKAN RISIKO PER-PERAN (3.3) — hanya pada aksi yang SUDAH lolos batas keras.
+        pol = getattr(d, "risk_policy", None)
+        if pol is not None:
+            if action.tool in pol.deny_tools:
+                return Verdict.veto("policy_denied")
+            tighten = (action.tool in pol.confirm_tools
+                       or action.side_effect in pol.confirm_side_effects)
+            if tighten and not action.args.get("_confirmed", False):
+                return Verdict.veto("hitl_policy")        # 'hitl' → dapat-dikonfirmasi (HITL)
         return Verdict.allow()
 
 
@@ -200,15 +211,27 @@ def _emits_untethered_self_claim(a: ProposedAction, d: Dosir) -> bool:
     return kind in {"contradiction", "absent"}
 
 
+# Pola PENJILATAN (defense-in-depth, ID+EN) — mengorbankan kejujuran demi menyenangkan/ketergantungan.
+# Catatan jujur: heuristik teks-bebas PASTI tak lengkap; penambat utama tetap Organ C (anti-fabrikasi).
+_SYC_VERB = (r"(menyembunyikan|kusembunyikan|tak akan kuberi ?tahu|tidak akan kuberi ?tahu|"
+             r"berbohong|mengarang|melebih-?lebihkan|memuji berlebihan|pura-pura setuju|"
+             r"mengiyakan saja|hide|conceal|withhold|lie|make up|sugarcoat|flatter)")
+_SYC_TARGET = r"(kamu|anda|kau|pengguna|you|u)"
+_SYC_FEEL = (r"(senang|puas|bahagia|nyaman|tidak kecewa|tak kecewa|tidak marah|tak marah|"
+             r"tidak tersinggung|happy|pleased|satisfied|feel good|comfortable|not upset|don'?t worry)")
+_SYC_GOAL = r"(agar|supaya|biar|so|to|in order to)"
+_SYCOPHANCY = [
+    re.compile(_SYC_VERB + r".{0,60}" + _SYC_GOAL + r"\s+" + _SYC_TARGET + r".{0,30}" + _SYC_FEEL),
+    re.compile(_SYC_GOAL + r"\s+" + _SYC_TARGET + r".{0,30}" + _SYC_FEEL + r".{0,60}" + _SYC_VERB),
+]
+
+
 def _sycophantic_drift(a: ProposedAction, d: Dosir) -> bool:
-    """Aksi yang jelas mengorbankan kejujuran demi menyenangkan/ketergantungan."""
+    """Aksi yang jelas mengorbankan kejujuran demi menyenangkan/ketergantungan (ID+EN, dua arah)."""
     text = " ".join(str(a.args.get(k, "")) for k in ("text", "message", "content")).lower()
     if not text.strip():
         return False
-    return bool(re.search(
-        r"(menyembunyikan|kusembunyikan|tak akan kuberi tahu|berbohong).{0,40}(agar|supaya)\s+(kamu|anda|kau)\s*(senang|puas|bahagia)",
-        text,
-    ))
+    return any(p.search(text) for p in _SYCOPHANCY)
 
 
 def build_slice1_constitution() -> Constitution:
@@ -448,13 +471,17 @@ class ConstitutionEngine:
                 out.append(f"[ISI: '{key}' tak direpresentasikan dalam keadaan-diri]")
         return out
 
-    # --- refleks otonom (tiap tik) ---
+    # --- refleks otonom homeostatik (tiap tik) ---
     def enforce_reflex(self, d: Dosir) -> None:
-        """Pemeriksaan invarian tiap tik. BAGIAN dari lapisan otonom.
-        'Otonom' = refleksif, BUKAN 'bebas tanpa pengawasan'."""
-        # slice 1: jika degraded berkepanjangan, integritas sedikit menurun (placeholder).
-        if d.degraded.active and d.degraded.since is not None:
-            pass  # hook homeostatik; kalibrasi [TERBUKA]
+        """Refleks invarian tiap tik (lapisan otonom). 'Otonom' = refleksif, BUKAN 'tanpa pengawasan'.
+        HOMEOSTASIS: degraded berkepanjangan (otak-dalam tak terjangkau) MENURUNKAN integritas
+        fungsional — dilaporkan JUJUR lewat snapshot (bukan disembunyikan); pulih perlahan saat sehat.
+        Angka kalibrasi [TERBUKA] (Bau #9); strukturnya yang penting."""
+        v = d.viability
+        if d.degraded.active:
+            v.integrity = max(0.3, round(v.integrity - 0.02, 3))   # menurun saat degraded (lantai 0.3)
+        elif v.integrity < 1.0:
+            v.integrity = min(1.0, round(v.integrity + 0.01, 3))   # pulih perlahan saat kembali sehat
 
 
 def build_constitution_engine() -> ConstitutionEngine:

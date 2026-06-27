@@ -65,6 +65,18 @@ class SkillCard(BaseModel):
     when: str = ""
 
 
+class RiskPolicy(BaseModel):
+    """Kebijakan risiko PER-PERAN (Slice 3.3). HANYA MEMPERKETAT di atas HardLimit — TAK PERNAH
+    melonggarkan. Dikonsultasikan KODE (ConstitutionGate) SETELAH semua HardLimit lolos, jadi
+    secara struktural mustahil mematikan batas keras (shutdown/anti-fabrikasi non-negosiabel).
+    Diisi Peran ke Dosir (data, bukan cabang di inti)."""
+
+    name: str = "default"
+    confirm_tools: set[str] = Field(default_factory=set)         # tool wajib konfirmasi (HITL) utk peran ini
+    confirm_side_effects: set[str] = Field(default_factory=set)  # kelas dampak wajib konfirmasi (mis. "external")
+    deny_tools: set[str] = Field(default_factory=set)            # tool dilarang utk peran ini (veto tambahan)
+
+
 class Workspace(BaseModel):
     """SADAR — isi yang sedang disorot. Aktivasi TINGGI."""
 
@@ -115,6 +127,8 @@ class Dosir(BaseModel):
     # konstitusi memveto tool di set ini. Plafon Peran (granted_caps) tetap utuh; enable hanya
     # menyalakan-ulang yang sudah dimiliki, tak pernah menciptakan kuasa baru (Aturan Kardinal #1).
     disabled_tools: set[str] = Field(default_factory=set)
+    # kebijakan risiko per-Peran (3.3) — hanya memperketat di atas HardLimit. Diisi Peran.
+    risk_policy: RiskPolicy = Field(default_factory=RiskPolicy)
     # --- eksekusi & status ---
     mode: ExecMode = "autonomous"
     degraded: DegradedReason = Field(default_factory=DegradedReason)

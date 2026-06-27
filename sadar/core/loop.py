@@ -271,7 +271,9 @@ class Engine:
                     self._pending[rid] = action
                     detail = action.args.get("cmd") or action.args.get("name")
                     what = f"aksi '{action.tool}'" + (f": {detail}" if detail else "")
-                    why = "berisiko" if verdict.reason == "hitl_risky_command" else "tak-terbalikkan"
+                    why = {"hitl_risky_command": "berisiko",
+                           "hitl_policy": "diwajibkan kebijakan peran"}.get(
+                               verdict.reason, "tak-terbalikkan")
                     self._ingest(Representation(
                         content=f"[KONFIRMASI DIBUTUHKAN id={rid}] {what} — {why}; "
                                 f"menunggu persetujuan manusia (confirm:{rid}).",

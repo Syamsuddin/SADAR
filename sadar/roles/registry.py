@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from pydantic import BaseModel, Field
 
-from sadar.core.dosir import Purpose
+from sadar.core.dosir import Purpose, RiskPolicy
 
 
 class Role(BaseModel):
@@ -20,6 +20,7 @@ class Role(BaseModel):
     wake_words: list[str] = Field(default_factory=list)   # nama-panggilan pemicu refleks sapaan
     greeting: str = ""                                    # sapaan tetap saat dipanggil namanya
     persona: str = ""                                     # nada/suara bicara (gaya, BUKAN klaim-diri)
+    risk_policy: RiskPolicy = Field(default_factory=RiskPolicy)   # kebijakan risiko per-Peran (3.3)
 
 
 def get_role(name: str) -> Role:
