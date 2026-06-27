@@ -221,7 +221,10 @@ scripts/       fix_key.py · review_proposals.py
 ---
 
 ## Batas yang dijaga jujur
-- Jaminan anti-bohong berlaku untuk **klaim-diri** (sesuai mandat Slice 1) — **belum** untuk setiap
-  klaim-dunia (otak masih bisa keliru/halusinasi soal fakta; frontier berikutnya: menambatkan klaim-dunia).
+- Anti-fabrikasi mencakup **klaim-diri** (ditambat ke `snapshot()`) **dan kini klaim-DUNIA** — rincian
+  faktual spesifik (angka/jalur/tanggal) yang tak tertambat ke **observasi** SADAR (persepsi/memori/
+  hasil-alat) ditandai jujur "belum terverifikasi", dan otak diarahkan menandai `[umum]`/`[ISI:]`/hedge.
+  Catatan jujur: ini menambat ke **yang diamati**, **bukan** verifikasi kebenaran absolut (mustahil
+  deterministik); heuristik rincian-spesifik (defense-in-depth), bukan jaminan kebenaran fakta.
 - Denylist CLI **pasti tak lengkap** (pilihan model: konfirmasi cukup, tanpa lantai-mutlak).
 - Model-diri Organ B masih **v1** (metrik graf; kualitas semantik tergantung embedder).

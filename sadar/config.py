@@ -46,6 +46,9 @@ class LoopConfig(BaseModel):
     # konsolidasi ber-ringkasan (Slice 2.2): tiap N item terkonsolidasi → 1 ringkasan turunan.
     # 0 = nonaktif (default; jaga determinisme tes & hemat panggilan S2). >0 + backend → aktif.
     summarize_every: int = 0
+    # anti-fabrikasi KLAIM-DUNIA: rincian faktual spesifik yang tak tertambat observasi → ditandai
+    # "belum terverifikasi" di jawaban. True = aktif (hanya menambah catatan jujur, tak memveto).
+    ground_world_claims: bool = True
 
 
 class VoiceConfig(BaseModel):

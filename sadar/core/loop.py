@@ -14,7 +14,8 @@ import re
 import time
 import uuid
 
-from sadar.core.constitution import ConstitutionEngine, ProposedAction, render_facts
+from sadar.core.constitution import (ConstitutionEngine, ProposedAction, render_facts,
+                                     unsupported_world_claims)
 from sadar.core.dosir import Dosir, DegradedReason, Representation
 from sadar.core.memory import MemoryEngine
 from sadar.core.metabolism import Metabolism
@@ -293,6 +294,17 @@ class Engine:
             if result.ok:
                 d.last_meaningful_action_tick = d.tick_count
 
+    def _evidence_text(self, d: Dosir) -> str:
+        """Korpus OBSERVASI SADAR untuk menambat klaim-dunia: isi persepsi + hasil-alat + memori
+        (di workspace) + fakta-pengguna tersimpan. 'Pikiran' (produksi LLM) BUKAN bukti."""
+        parts = [r.content for r in d.workspace.items
+                 if r.source in ("perception", "action_result", "memory") and not r.ephemeral]
+        try:
+            parts += [f.content for f in self.memory.user_facts()]
+        except Exception:  # noqa: BLE001 — store opsional; jangan jatuhkan loop
+            pass
+        return " ".join(parts)
+
     def _emit_reply(self, d: Dosir, reply: str) -> None:
         """Ucapkan JAWABAN PERCAKAPAN via 'say' — TETAP lewat gerbang konstitusi (anti-fabrikasi #2
         tak dilonggarkan: klaim-diri tak-tertambat tetap diveto). Tanpa organ suara (mode teks/CLI),
@@ -300,6 +312,13 @@ class Engine:
         text = (reply or "").strip()
         if not text:
             return
+        # ANTI-FABRIKASI KLAIM-DUNIA: rincian faktual spesifik yang TAK tertambat ke observasi SADAR
+        # (persepsi/memori/hasil-alat) → ditandai jujur "belum terverifikasi", BUKAN dinyatakan pasti.
+        if getattr(self.cfg, "ground_world_claims", True):
+            uns = unsupported_world_claims(text, self._evidence_text(d))
+            if uns:
+                text += (" (Catatan jujur: rincian " + ", ".join(uns[:5])
+                         + " belum terverifikasi dari observasi/memoriku.)")
         if "say" not in self._tools:
             self._ingest(Representation(content=f"[reply] {text}", source="thought"))
             return
@@ -425,7 +444,11 @@ class Engine:
             'atas, bahasa pengguna). "reply" untuk bicara; "action" HANYA untuk memakai alat '
             '(mis. mencatat/recall) — jangan pakai alat "say" sendiri. JANGAN mengklaim emosi/'
             'suasana hati/sensasi internal (mis. "senang hati", "aku merasa"); untuk keadaan-diri '
-            'sebut HANYA angka/fakta dari keadaan, atau "[ISI:]".\n'
+            'sebut HANYA angka/fakta dari keadaan, atau "[ISI:]". '
+            'KLAIM-DUNIA: saat menyebut FAKTA/rincian spesifik (angka, tanggal, jalur berkas, nama) '
+            'tentang dunia atau pengguna, dasarkan pada OBSERVASI (persepsi/memori/hasil-alat). Bila '
+            'dari pengetahuan umum yang belum kau-amati, tandai "[umum]" atau pakai kata pelunak '
+            '("sekitar/mungkin"); bila tak tahu, "[ISI:]". Jangan menyatakan rincian tak-teramati seakan pasti.\n'
         )
         persona = (d.persona.strip() + "\n\n") if d.persona else ""
         return (

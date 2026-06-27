@@ -85,6 +85,10 @@ Sudah **SELESAI** sejak roadmap disusun (suite: **162 passed, 1 skipped**; mirro
 - ✅ **Pasca-roadmap — Organ B v3 (spektral)** — `algebraic_connectivity` = λ₂ Laplacian graf caused_by
   (eigensolver Jacobi murni-Python di `core/mathx.py`, core tetap bebas-numpy); masuk snapshot & ditambat
   Organ C. Triad riset SIG/PSI/TIF §8.1 tetap terbuka (tak terdefinisi → tak dikarang). *(tes: `test_organ_b.py`)*
+- ✅ **Pasca-roadmap — Anti-fabrikasi KLAIM-DUNIA** (gap filosofis terbesar): rincian faktual spesifik
+  (angka/jalur/tanggal) yang tak tertambat ke OBSERVASI (persepsi/memori/hasil-alat) ditandai "belum
+  terverifikasi"; otak diarahkan pakai `[umum]`/`[ISI:]`/hedge. Bukan verifikasi kebenaran (mustahil) —
+  menambat ke "yang diamati". *(`core/constitution.py: unsupported_world_claims`, tes: `test_world_grounding.py`)*
 
 **Belum:** — (semua item roadmap Slice 2–4 SELESAI).
 

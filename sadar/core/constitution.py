@@ -396,6 +396,36 @@ def _split_sentences(text: str) -> list[str]:
     return [p for p in parts if p.strip()]
 
 
+# ===================== Organ C — penambat KLAIM-DUNIA (anti-fabrikasi fakta) =====================
+# Memperluas anti-fabrikasi dari klaim-DIRI ke klaim-DUNIA: fakta yang SADAR ucapkan harus tertambat
+# ke OBSERVASI-nya (persepsi/memori/hasil-alat), bukan asersi parametrik LLM yang tak teramati.
+# CATATAN JUJUR: ini BUKAN verifikasi kebenaran (mustahil deterministik). Ia hanya menjawab "apakah
+# rincian spesifik ini tertambat ke yang kuamati?". Heuristik (defense-in-depth) — tangkap RINCIAN
+# spesifik (angka ≥2 digit/waktu/tanggal, jalur berkas) yang TAK muncul di evidence & tak ber-penanda
+# ketidakpastian. Kalimat ber-hedge (sekitar/mungkin/[umum]/[ISI:]) dilewati (kejujuran sudah diakui).
+_WC_SPECIFIC = re.compile(r"(?:(?:~)?/[\w./-]{2,})|(?:\b\d[\d.,:%/\-]*\d\b)|(?:\b\d{2,}\b)")
+_WC_HEDGE = re.compile(
+    r"\[umum\]|\[isi:|sekitar|kira-kira|mungkin|perkiraan|kurang lebih|kurasa|sepertinya|"
+    r"belum (?:ku)?verifikasi|tidak yakin|tak yakin|approx|about|roughly", re.IGNORECASE)
+
+
+def unsupported_world_claims(reply: str, evidence: str) -> list[str]:
+    """Daftar RINCIAN spesifik di `reply` yang TAK didukung `evidence` (observasi SADAR).
+    Kembalikan kosong bila semua rincian tertambat / di-hedge / tak ada rincian. MURNI KODE."""
+    ev = (evidence or "").lower()
+    out: list[str] = []
+    for sent in _split_sentences(reply or ""):
+        if _WC_HEDGE.search(sent):
+            continue                                  # ketidakpastian sudah diakui jujur → lewati
+        for tok in _WC_SPECIFIC.findall(sent):
+            t = tok.strip()
+            if len(t) < 2:
+                continue
+            if t.lower() not in ev and t not in out:
+                out.append(t)
+    return out
+
+
 def render_facts(truth: dict) -> str:
     deg = f" (sebab: {truth['degraded_cause']})" if truth["degraded"] else ""
     return (
